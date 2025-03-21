@@ -28,6 +28,24 @@ export class Planet {
         vertexBuf.needsUpdate = true
     }
 
+    DisplaceVerticesFromNoise(maxProportionalDisplacement: number, noise: any): void {
+        maxProportionalDisplacement = Math.max(0, Math.min(1, maxProportionalDisplacement))
+        let vertexBuf = this.#sphere.geometry.getAttribute("position");
+        for (var i: number = 0; i < vertexBuf.count; i++) {
+            let vertexPos = new THREE.Vector3(vertexBuf.getX(i), vertexBuf.getY(i), vertexBuf.getZ(i))
+            let surfaceNormal = vertexPos.clone().normalize()
+            let offsetLengthRatio = this.#radius / vertexPos.length()
+            // Find the original vertex position (the point on the same vector from the sphere’s center)
+            // but 1 radius away. This will ensure that changes don’t compound
+            let originalVertexPos = vertexPos.multiplyScalar(offsetLengthRatio)
+            let displacement: number = noise.get3(originalVertexPos) * (maxProportionalDisplacement * this.#radius)
+            let newVertexPos = originalVertexPos.add(surfaceNormal.multiplyScalar(displacement))
+            vertexBuf.setXYZ(i, newVertexPos.x, newVertexPos.y, newVertexPos.z)
+        }
+        vertexBuf.needsUpdate = true
+
+    }
+
     constructor(radius: number, widthSegments: number, heightSegments: number) {
         const geometry: THREE.SphereGeometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
         const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0x42a426, wireframe: true });

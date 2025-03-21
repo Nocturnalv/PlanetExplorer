@@ -14,6 +14,8 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
-    "three": "^0.174.0"
+    "lil-gui": "^0.20.0",
+    "three": "^0.174.0",
+    "three-noise": "^1.1.2"
   }
 }
