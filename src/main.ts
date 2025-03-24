@@ -16,16 +16,19 @@ const controls: OrbitControls = new OrbitControls(camera, renderer.domElement)
 
 var settings = {
     "seed": Math.random(),
-    "maxProportionalDisplacement": 0.1
+    "terrainExaggeration": 0.1,
+    "colorA": new THREE.Color(0xDD614A),
+    "colorB": new THREE.Color(0x73A580)
 }
 
-function RegeneratePlanetMesh() {
-    planet.DisplaceVerticesFromNoise(settings["maxProportionalDisplacement"], noise)
+function RegeneratePlanetMesh(): void {
+    planet.DisplaceVerticesFromNoise(noise)
+    planet.ColorVertices(settings["colorA"], settings["colorB"])
 }
 
 var noise = new FBM({ seed: settings["seed"] })
 
-var planet: Planet = new Planet(5, 50, 50)
+var planet: Planet = new Planet(5, 256, 256, settings["terrainExaggeration"])
 RegeneratePlanetMesh()
 scene.add(planet.GetMesh());
 scene.add(new THREE.AxesHelper())
@@ -38,7 +41,9 @@ gui.add(settings, "seed").min(0).max(10).step(0.01).name("Seed").onFinishChange(
     RegeneratePlanetMesh()
 });
 
-gui.add(settings, "maxProportionalDisplacement").min(0).max(1).name("Max Proportional Displacement").step(0.01).onChange((_: any) => RegeneratePlanetMesh())
+gui.add(settings, "terrainExaggeration").min(0).max(1).name("Terrain exaggeration").step(0.01).onChange((_: any) => RegeneratePlanetMesh())
+gui.addColor(settings, "colorA").name("Colour A").onChange((_: any) => RegeneratePlanetMesh())
+gui.addColor(settings, "colorB").name("Colour B").onChange((_: any) => RegeneratePlanetMesh())
 
 function Animate() {
     controls.update()
