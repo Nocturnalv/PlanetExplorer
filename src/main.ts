@@ -11,7 +11,6 @@ class Global {
     #scene: THREE.Scene
     #renderer: THREE.WebGLRenderer
 
-
     get ActivePlanet() { return this.#activePlanet }
 
     constructor() {

@@ -28,15 +28,16 @@ export class Planet {
         let vertexBuf = this.#sphere.geometry.getAttribute("position");
         for (var i: number = 0; i < vertexBuf.count; i++) {
             let vertexPos = new THREE.Vector3(vertexBuf.getX(i), vertexBuf.getY(i), vertexBuf.getZ(i))
-            let surfaceNormal = vertexPos.clone().normalize()
+            let upDirection = vertexPos.clone().normalize()
             let offsetLengthRatio = this.#settings.Radius / vertexPos.length()
             // Find the original vertex position (the point on the same vector from the sphere’s center)
             // but 1 radius away. This will ensure that changes don’t compound
             let originalVertexPos = vertexPos.multiplyScalar(offsetLengthRatio)
             let displacement: number = this.#noise.get3(originalVertexPos) * (this.#settings.TerrainExaggeration * this.#settings.Radius)
-            let newVertexPos = originalVertexPos.add(surfaceNormal.multiplyScalar(displacement))
+            let newVertexPos = originalVertexPos.add(upDirection.multiplyScalar(displacement))
             vertexBuf.setXYZ(i, newVertexPos.x, newVertexPos.y, newVertexPos.z)
         }
+        this.#sphere.geometry.computeVertexNormals()
         vertexBuf.needsUpdate = true
     }
 
@@ -48,8 +49,8 @@ export class Planet {
         let scaleFactor = newRadius / prevRadius
         for (var i: number = 0; i < vertexBuf.count; i++) {
             let vertexPos = new THREE.Vector3(vertexBuf.getX(i), vertexBuf.getY(i), vertexBuf.getZ(i))
-            let surfaceNormal = vertexPos.clone().normalize()
-            let newVertexPos = surfaceNormal.multiplyScalar(vertexPos.length() * scaleFactor)
+            let upDirection = vertexPos.clone().normalize()
+            let newVertexPos = upDirection.multiplyScalar(vertexPos.length() * scaleFactor)
             vertexBuf.setXYZ(i, newVertexPos.x, newVertexPos.y, newVertexPos.z)
         }
         this.#currRadius = newRadius
@@ -59,18 +60,28 @@ export class Planet {
     ColorVertices(): void {
         if (this.#sphere === null) return
         let positionAttr = this.#sphere.geometry.getAttribute("position")
+        let normalAttr = this.#sphere.geometry.getAttribute("normal")
         let colourAttr = this.#sphere.geometry.getAttribute("color")
         for (var i = 0; i < positionAttr.count; i++) {
             let vertexPos = new THREE.Vector3(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
+            let normal = new THREE.Vector3(normalAttr.getX(i), normalAttr.getY(i), normalAttr.getZ(i))
+            let upDirection = vertexPos.clone().normalize()
+            let steepness = 1 - normal.dot(upDirection)
             let displacement: number = vertexPos.length() - this.#settings.Radius
-            let percentageDisplacment: number = displacement / this.#settings.TerrainExaggeration
-            let mixAmount = percentageDisplacment
-            let finalColour = new THREE.Vector3(
-                THREE.MathUtils.lerp(this.Settings.ColorA.r, this.Settings.ColorB.r, mixAmount),
-                THREE.MathUtils.lerp(this.Settings.ColorA.g, this.Settings.ColorB.g, mixAmount),
-                THREE.MathUtils.lerp(this.Settings.ColorA.b, this.Settings.ColorB.b, mixAmount)
+            let height: number = displacement / this.#settings.TerrainExaggeration
+            // TODO: Create a function for lerping V3s
+            let heightColor = new THREE.Vector3(
+                THREE.MathUtils.lerp(this.Settings.SmallHeightColor.r, this.Settings.LargeHeightColor.r, height),
+                THREE.MathUtils.lerp(this.Settings.SmallHeightColor.g, this.Settings.LargeHeightColor.g, height),
+                THREE.MathUtils.lerp(this.Settings.SmallHeightColor.b, this.Settings.LargeHeightColor.b, height)
             )
-            colourAttr.setXYZ(i, finalColour.x, finalColour.y, finalColour.z)
+            let steepnessColor = new THREE.Vector3(
+                THREE.MathUtils.lerp(this.Settings.SmallSteepnessColor.r, this.Settings.LargeSteepnessColor.r, steepness),
+                THREE.MathUtils.lerp(this.Settings.SmallSteepnessColor.g, this.Settings.LargeSteepnessColor.g, steepness),
+                THREE.MathUtils.lerp(this.Settings.SmallSteepnessColor.b, this.Settings.LargeSteepnessColor.b, steepness)
+            )
+            let finalColor = heightColor.multiply(steepnessColor)
+            colourAttr.setXYZ(i, finalColor.x, finalColor.y, finalColor.z)
         }
         colourAttr.needsUpdate = true
     }
