@@ -3,40 +3,36 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Planet } from "./planet";
 import { Settings } from "./settings"
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const scene: THREE.Scene = new THREE.Scene();
-const camera: THREE.Camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(10, 10, 10)
-camera.lookAt(new THREE.Vector3(0, 0, 0))
-const controls: OrbitControls = new OrbitControls(camera, renderer.domElement)
-
 // I’m sure there’s a better name for this
 class Global {
     #activePlanet: Planet
+    #controls: OrbitControls
+    #camera: THREE.PerspectiveCamera
+    #scene: THREE.Scene
+    #renderer: THREE.WebGLRenderer
+
 
     get ActivePlanet() { return this.#activePlanet }
 
     constructor() {
+        this.#renderer = new THREE.WebGLRenderer();
+        this.#renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(this.#renderer.domElement);
+        this.#scene = new THREE.Scene();
+        this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.#camera.position.set(10, 10, 10)
+        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+        this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+        this.#renderer.setAnimationLoop(this.Tick.bind(this));
+
         let settings = new Settings()
-        this.#activePlanet = new Planet(settings, scene)
-        if (this.#activePlanet.Mesh === null) return
-        scene.add(this.#activePlanet.Mesh);
+        this.#activePlanet = new Planet(settings, this.#scene)
     }
 
-    DoNothing(): void {
-        return
+    Tick() {
+        this.#controls.update()
+        this.#renderer.render(this.#scene, this.#camera);
     }
 }
 
-let global = new Global()
-global.DoNothing()
-
-function Animate() {
-    controls.update()
-    renderer.render(scene, camera);
-}
-
-renderer.setAnimationLoop(Animate);
+new Global()
