@@ -16,6 +16,7 @@
   "dependencies": {
     "@tweakpane/core": "^2.0.5",
     "three": "^0.174.0",
+    "three-mesh-bvh": "^0.9.0",
     "three-noise": "^1.1.2",
     "tweakpane": "^4.0.5"
   }
