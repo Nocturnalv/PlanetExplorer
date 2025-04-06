@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Settings } from "./settings"
 import { FBM } from "three-noise";
+import VertexShader from "./shaders/vertex.glsl?raw";
+import FragmentShader from "./shaders/fragment.glsl?raw";
 
 export class Planet {
     #sphere: THREE.Mesh | null = null
@@ -94,7 +96,10 @@ export class Planet {
             this.#settings.WidthSegments,
             this.#settings.HeightSegments
         )
-        const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ vertexColors: true })
+        const material: THREE.ShaderMaterial = new THREE.ShaderMaterial({
+            vertexShader: VertexShader,
+            fragmentShader: FragmentShader,
+        })
         geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count * 3), 3))
         this.#sphere = new THREE.Mesh(geometry, material)
         this.#scene.add(this.#sphere)
