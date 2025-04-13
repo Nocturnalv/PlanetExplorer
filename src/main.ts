@@ -26,6 +26,8 @@ class Global {
 
         let settings = new Settings()
         this.#activePlanet = new Planet(settings, this.#scene)
+        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        shader.uniforms.u_cameraPosition.value = this.#camera.position;
     }
 
     Tick() {
