@@ -1,20 +1,20 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-//import { Planet } from "./planet";
-// import { Settings } from "./settings"
+import { Planet } from "./planet";
+import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
 
 
 // I’m sure there’s a better name for this
 class Global {
-    // #activePlanet: Planet
+    #activePlanet: Planet
     #controls: OrbitControls
     #camera: THREE.PerspectiveCamera
     #scene: THREE.Scene
     #renderer: THREE.WebGLRenderer
-    _testScene : collisionTest
+    #testScene: collisionTest
 
-    //get ActivePlanet() { return this.#activePlanet }
+    get ActivePlanet() { return this.#activePlanet }
 
     constructor() {
         this.#renderer = new THREE.WebGLRenderer();
@@ -27,16 +27,17 @@ class Global {
         this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
 
-        this._testScene = new collisionTest(this.#scene);
-
-        // let settings = new Settings()
-        // this.#activePlanet = new Planet(settings, this.#scene)
+        let settings = new Settings();
+        this.#activePlanet = new Planet(settings, this.#scene)
+        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        shader.uniforms.u_cameraPosition.value = this.#camera.position;
+        this.#testScene = new collisionTest(this.#scene, this.ActivePlanet);
     }
 
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
-        this._testScene.renderBall();
+        this.#testScene.renderBall();
     }
 }
 
