@@ -31,6 +31,7 @@ class Global {
         this.#activePlanet = new Planet(settings, this.#scene)
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPosition.value = this.#camera.position;
+        
         this.#testScene = new collisionTest(this.#scene, this.ActivePlanet);
     }
 

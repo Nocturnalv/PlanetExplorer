@@ -3,14 +3,14 @@ import { Pane, FolderApi } from "tweakpane";
 import { Planet } from "./planet";
 
 export class Settings {
-    Radius: number = 5
+    Radius: number = 10
     FlatAColor: THREE.Color = new THREE.Color()
     FlatBColor: THREE.Color = new THREE.Color()
     SteepAColor: THREE.Color = new THREE.Color()
     SteepBColor: THREE.Color = new THREE.Color()
     HeightNoiseSeed: number = 0;
-    HeightScale: number = 0.05;
-    HeightNoiseScale: number = 1.0;
+    HeightScale: number = 0.5;
+    HeightNoiseScale: number = 10;
     BiomeNoiseSeed: number = 0;
     BiomeNoiseScale: number = 1.0;
     UseColorBanding: boolean = false
