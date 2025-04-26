@@ -38,7 +38,7 @@ class Global {
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
-        this.#testScene.renderBall();
+        this.#testScene.update();
     }
 }
 

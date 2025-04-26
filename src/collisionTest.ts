@@ -3,48 +3,28 @@ import { MeshBVH, MeshBVHHelper, StaticGeometryGenerator } from 'three-mesh-bvh'
 import { Planet } from "./planet";
 import { Settings } from "./settings";
 import * as CANNON from 'cannon-es';
+import CannonUtils from './utils/cannonUtils';
+
 //import * as controls from "./helper.ts"
 
 export class collisionTest{
-
-	params = {
-		gravity: -9.8,
-		physicsSteps: 6,
-		simulationSpeed: 1,
-		pause: false,
-		step: () => {
-			const steps = this.params.physicsSteps;
-			for ( let i = 0; i < steps; i ++ ) {
-				this.update( 0.016 / steps );
-			}
-		},
-	};
+	cannonUtils = new CannonUtils();
 
 	scene: THREE.Scene;
 	clock: THREE.Clock;
-	collider: THREE.Mesh | null = null;
-	visualizer: MeshBVHHelper | null = null;
 	sphere: THREE.Mesh;
 	planet: Planet | null = null;
-	sphereVelocity = new THREE.Vector3();
-	gravityVelocity = new THREE.Vector3();
-	movementVelocity = new THREE.Vector3();
-	tempSphere = new THREE.Sphere();
-	deltaVec = new THREE.Vector3();
-	settings: Settings = new Settings();
 	arrowHelper: THREE.ArrowHelper | null = null;
-	onSurface: boolean = false;
-
 	world: CANNON.World | null = null;
 	sphereShape: CANNON.Sphere | null = null;
 	sphereBody: CANNON.Body | null = null;
+	earthBody: CANNON.Body | null = null;
+	collider: THREE.Mesh | null = null;
 
 	camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-	// //sphere2: THREE.Mesh;
-	// sphereShape2: CANNON.Sphere | null = null;
-	// sphereBody2: CANNON.Body | null = null;
-
+	groundMaterial: CANNON.Material | null = null;
+	playerMaterial: CANNON.Material | null = null;
 
 	fwdPressed: boolean | null = null;
     bkdPressed: boolean | null = null;
@@ -65,31 +45,45 @@ export class collisionTest{
 		this.lftPressed = false;
 		this.spacePressed = false;
 
-		//this.world = new CANNON.World();
-		//this.world.gravity.set(0, -1, 0);
+		this.world = new CANNON.World();                   
+		//this.world.gravity.set(0, 0, 0);
+		// this.world.broadphase = new CANNON.NaiveBroadphase(); // Use a broadphase algorithm
+		// this.world.defaultContactMaterial.friction = 0.4; // Adjust friction
+		// this.world.defaultContactMaterial.restitution = 0.5; // Adjust restitution
+
+		this.groundMaterial = new CANNON.Material('groundMaterial')
+        this.playerMaterial = new CANNON.Material('playerMaterial')
+        const wheelGroundContactMaterial = new CANNON.ContactMaterial(
+            this.playerMaterial,
+            this.groundMaterial,
+            {
+                friction: 0.1,
+                restitution: 0.5,
+                contactEquationStiffness: 1000,
+            }
+        )
+        this.world.addContactMaterial(wheelGroundContactMaterial)
 
 		if (this.planet && this.planet.Mesh) {
 
-			this.planet.Mesh.updateMatrixWorld(true);
-			const staticGenerator = new StaticGeometryGenerator( this.planet.Mesh );
-			staticGenerator.attributes = [ 'position' ];
-
-			const mergedGeometry = staticGenerator.generate();
-			mergedGeometry.boundsTree = new MeshBVH( mergedGeometry );
-
-			this.planet.Mesh.geometry.boundsTree = new MeshBVH( this.planet.Mesh.geometry );
+			const shape = this.cannonUtils.CreateTrimesh(this.planet.Mesh.geometry)
+			this.earthBody = new CANNON.Body({
+				mass: 0,
+				material: this.groundMaterial,
+			})
+			this.earthBody.addShape(shape)
+			this.earthBody.position.set(this.planet.Mesh.position.x, this.planet.Mesh.position.y, this.planet.Mesh.position.z)
+			this.earthBody.quaternion.set(this.planet.Mesh.quaternion.x, this.planet.Mesh.quaternion.y, this.planet.Mesh.quaternion.z, this.planet.Mesh.quaternion.w)
+			this.earthBody.collisionResponse = true;		
+	
+			this.world.addBody(this.earthBody)
 
 			const colliderMaterial = new THREE.MeshBasicMaterial({
 				wireframe: true,
-				opacity: 0,
+				opacity: 0.1,
 				transparent: true,
 			});
-
 			this.collider = new THREE.Mesh( this.planet.Mesh.geometry, colliderMaterial );
-			this.collider = new THREE.Mesh( mergedGeometry, colliderMaterial );
-
-			this.visualizer = new MeshBVHHelper( this.collider, 10 );
-			scene.add( this.visualizer );
 			scene.add( this.collider );
 		}
 
@@ -97,224 +91,131 @@ export class collisionTest{
 		this.keyUpFunc = this.keyUpFunc.bind(this)
 		window.addEventListener('keydown', this.keyDownFunc);
 		window.addEventListener('keyup', this.keyUpFunc);
+		this.stepFunc = this.stepFunc.bind(this);
+		this.world.addEventListener('postStep', this.stepFunc);
 
-		this.sphere = this.createSphere(scene);
-		this.sphere.position.set (30,30,0);
-		scene.add(this.sphere);
+		this.earthBody?.addEventListener('collide', (event: any) => {
+			console.log('Collision detected with:', event.body);
+			console.log('Contact normal:', event.contact);
+		});
 
-		// this.camera.position.set(this.sphere.position.x, this.sphere.position.y, this.sphere.position.z);
-		// this.camera.lookAt(new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation ));
-	
+		this.sphere = this.createSphere();
 
-		// this.sphere2 = this.createSphere(scene);
-		// this.sphere2.position.set (-10,-9,0);
-		// scene.add(this.sphere2);
-		// this.sphereShape = new CANNON.Sphere(1);
-		// this.sphereBody = new CANNON.Body({mass:1});
-		// this.sphereBody.addShape(this.sphereShape);
-		// this.sphereBody.position.set( this.sphere.position.x, this.sphere.position.y, this.sphere.position.z );
-		// this.world?.addBody(this.sphereBody);
-		// this.sphereShape2 = new CANNON.Sphere(1);
-		// this.sphereBody2 = new CANNON.Body({mass:1});
-		// this.sphereBody2.addShape(this.sphereShape2);
-		// this.sphereBody2.position.set( this.sphere2.position.x, this.sphere2.position.y, this.sphere2.position.z );
-		// this.world?.addBody(this.sphereBody2);
+		let spherePos = this.getSpawnPosition(new THREE.Vector3(20, 20, 0));
+		this.sphere.position.set(spherePos.x, spherePos.y, spherePos.z);
+
+		scene.add(this.sphere);	
+
+		this.sphereBody = new CANNON.Body({
+			mass: 1,
+			shape: new CANNON.Sphere(1),
+			linearDamping: 0.1, // Add damping to reduce sliding
+			angularDamping: 0.1, // Add damping to reduce rotation
+			material: this.playerMaterial,
+		});
+		this.sphereBody.position.set(this.sphere.position.x, this.sphere.position.y, this.sphere.position.z);
+		this.sphereBody.collisionResponse = true;
+		this.sphereBody.allowSleep = false;
+
+		this.world?.addBody(this.sphereBody);
 	}
 		
-	createSphere(scene: THREE.Scene) {
+	createSphere() {
 		const sphere = new THREE.Mesh(
 			new THREE.SphereGeometry( 1, 20, 20 ),
 			new THREE.MeshBasicMaterial( { 
 				map: new THREE.TextureLoader().load("texture/tempMap.png") } )
 		);
-		scene.add( sphere );
-	
+		this.scene.add( sphere );
 		const radius = 1;
 		sphere.scale.setScalar( radius );
-		this.sphereVelocity = new THREE.Vector3( 0, 0, 0 );
-
 		return sphere;		
 	}
 	
-	updateSphereCollisions( deltaTime: number) {
-		if (this.collider != null){
-			const bvh = this.collider.geometry.boundsTree;
-			const sphereCollider = new THREE.Sphere( this.sphere.position, 1 );
-
-			let maximumDistance = Math.max( Math.abs(this.sphere.position.x), Math.abs(this.sphere.position.y), Math.abs(this.sphere.position.z ));
-			let gravityVec = new THREE.Vector3( (0 - this.sphere.position.x)/maximumDistance, (0 - this.sphere.position.y)/maximumDistance, (0 - this.sphere.position.z)/maximumDistance );
-			
-			this.gravityVelocity.addScaledVector( gravityVec, 1);
-
-			this.sphereVecFunc()
-				
-			sphereCollider.center.addScaledVector( this.sphereVelocity, deltaTime );
-		
-			this.tempSphere.copy(sphereCollider);
-				
-			this.sphere.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), this.sphere.position.clone().normalize());
-
-			let collided = false;
-			this.onSurface = false;
-		
-			if (bvh != null ){
-				bvh.shapecast( {
-					intersectsBounds: box => {
-						return box.intersectsSphere( this.tempSphere );
-					},
-			
-					intersectsTriangle: tri => {
-						// get delta between closest point and center
-						tri.closestPointToPoint( this.tempSphere.center, this.deltaVec );
-						this.deltaVec.sub( this.tempSphere.center ); 			// subtract the centre of the sphere from the delta vector
-						const distance = this.deltaVec.length(); 		// the distance is the length of delta vector
-						if ( distance < this.tempSphere.radius ) {		// If the distance is less than the radius (so if its intersecting?)
-							// move the sphere position to be outside the triangle - Not sure what this means
-							const radius = this.tempSphere.radius;
-							const depth = distance - radius;
-							
-							this.deltaVec.multiplyScalar( 1 / distance );
-							this.tempSphere.center.addScaledVector( this.deltaVec, depth );
-							collided = true;
-							this.onSurface = true;
-
-							this.gravityVelocity.set(0,0,0);
-							this.sphereVecFunc();
-						}
-						// if (distance < 1.2 * this.tempSphere.radius) {
-						// 	this.onSurface = true;
-						// }
-					},
-			
-					boundsTraverseOrder: box => {
-						return box.distanceToPoint( this.tempSphere.center ) - this.tempSphere.radius;
-					},
-				} );
-			}
-			
-			if ( collided ) {
-				// // get the delta direction and reflect the velocity across it
-				// this.deltaVec.subVectors( this.roundVec(this.tempSphere.center), this.roundVec(sphereCollider.center) ).normalize();
-				// this.sphereVelocity.reflect( this.roundVec(this.deltaVec) );
-				// // dampen the velocity and apply some drag
-				// const dot = this.sphereVelocity.dot( this.deltaVec );
-				// this.sphereVelocity.addScaledVector( this.deltaVec, - dot * 1 );
-				// this.sphereVelocity.multiplyScalar( Math.max( 1.0 - deltaTime, 0 ) );
-			
-				sphereCollider.center.copy( this.tempSphere.center );
-
-				const surfaceNormal = new THREE.Vector3().subVectors(this.sphere.position, new THREE.Vector3(0,0,0)).normalize();
-				this.sphere.position.copy(surfaceNormal).multiplyScalar( 5 + this.tempSphere.radius );
-
-			}
-		}
-	}
 
 	walkies(){
-		let facingVec = new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation );
-		let sideingVec = new THREE.Vector3(0,0,1).applyEuler( this.sphere.rotation );
+		if (this.sphereBody){
+			this.sphereBody.quaternion.setFromVectors(new CANNON.Vec3(0,1,0), this.sphereBody.position.clone());
 
-		this.arrowHelper = new THREE.ArrowHelper( this.sphereVelocity, this.sphere.position, 1, 0x0000ff );
-		this.scene.add( this.arrowHelper );
+			let facingVec = new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation );
+			let sideingVec = new THREE.Vector3(0,0,1).applyEuler( this.sphere.rotation );
+			let upVec = new THREE.Vector3(0,1,0).applyEuler( this.sphere.rotation );
+			
+			// this.arrowHelper = new THREE.ArrowHelper( facingVec, this.sphere.position, 5, 0xffff00 );
+			// this.scene.add( this.arrowHelper );
+	
+			// this.arrowHelper = new THREE.ArrowHelper( sideingVec, this.sphere.position, 5, 0xffff00 );
+			// this.scene.add( this.arrowHelper );
 
-		let faceVec = new THREE.Vector3().subVectors(this.sphere.position, facingVec);
+			const v = new CANNON.Vec3();
 
-		let sideVec = new THREE.Vector3().subVectors(this.sphere.position, sideingVec);;
+			this.fwdPressed? v.set(facingVec.x, facingVec.y, facingVec.z).normalize(): null;
+			this.bkdPressed? v.set(-facingVec.x, -facingVec.y, -facingVec.z).normalize(): null;
+			this.rgtPressed? v.set(sideingVec.x, sideingVec.y, sideingVec.z).normalize(): null;
+			this.lftPressed? v.set(-sideingVec.x, -sideingVec.y, -sideingVec.z).normalize(): null;
+			this.spacePressed? v.set(upVec.x, upVec.y, upVec.z).normalize(): null;
+	 
+			return v;
 
-		//console.log(this.fwdPressed)
-		if (this.onSurface){
-			if (this.fwdPressed || this.bkdPressed || this.rgtPressed || this.lftPressed){
-				this.fwdPressed? this.movementVelocity.set(-0.5*faceVec.x, -0.5*faceVec.y, -0.5*faceVec.z): null;
-				this.bkdPressed? this.movementVelocity.set(0.5*faceVec.x, 0.5*faceVec.y, 0.5*faceVec.z): null;
-				this.rgtPressed? this.movementVelocity.set(-0.5*sideVec.x, -0.5*sideVec.y, -0.5*sideVec.z): null;
-				this.lftPressed? this.movementVelocity.set(0.5*sideVec.x, 0.5*sideVec.y, 0.5*sideVec.z): null;
-			}else{
-				this.movementVelocity.set(0,0,0);
-			}
-			if (this.spacePressed){
-				let maximumDistance = Math.max( Math.abs(this.sphere.position.x), Math.abs(this.sphere.position.y), Math.abs(this.sphere.position.z ));
-				let gravityVec = new THREE.Vector3( (0 - this.sphere.position.x)/maximumDistance, (0 - this.sphere.position.y)/maximumDistance, (0 - this.sphere.position.z)/maximumDistance );
-				this.movementVelocity.addScaledVector( gravityVec, -10 );
-			}
-		}else{
-			this.movementVelocity.set(0,0,0); 
 		}
+		//return new THREE.Vector3(0,0,0);
+		return new CANNON.Vec3(0,0,0);
 	} 
 
-	sphereVecFunc(){
-		this.sphereVelocity.set(0,0,0);
-		//if (this.gravityVelocity )
-		this.sphereVelocity.addScaledVector( this.gravityVelocity, 1 );
-		this.sphereVelocity.addScaledVector( this.movementVelocity, 1 );
-	}
-
 	// Update physics and animation
-	update( delta : number ) {
-		if ( this.collider ) {
-			const steps = this.params.physicsSteps;
-			for ( let i = 0; i < steps; i ++ ) {
-				this.updateSphereCollisions( delta / steps);
-			}
-			this.sphere.position.addScaledVector( this.sphereVelocity, delta );
-		}
-		this.walkies();
+	update() {
 
-		// this.camera.position.set(this.sphere.position.x, this.sphere.position.y, this.sphere.position.z);
-		// //this.camera.lookAt(new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation ));
-		// this.camera.lookAt(this.sphereVelocity);
-	
-
-
-		// this.world?.step( delta );	
-
-		// if (this.sphereBody){
-
-		// 	const v = new CANNON.Vec3();
-		// 	v.set( -this.sphereBody.position.x, -this.sphereBody.position.y, -this.sphereBody.position.z ).normalize();
-		// 	v.scale(9.8, this.sphereBody.force);ww
-		// 	this.sphereBody.applyLocalForce(v, this.sphereBody.position);
-		// 	this.sphereBody.force.y += this.sphereBody.mass;
-
-		// 	this.sphere.position.set(this.sphereBody.position.x, this.sphereBody.position.y, this.sphereBody.position.z)
-		// 	this.sphere.quaternion.set(
-		// 		this.sphereBody.quaternion.x,
-		// 		this.sphereBody.quaternion.y,
-		// 		this.sphereBody.quaternion.z,
-		// 		this.sphereBody.quaternion.w
-		// 	)
-		// }
-
-		// if (this.sphereBody2){
-
-		// 	const v = new CANNON.Vec3();
-		// 	v.set( -this.sphereBody2.position.x, -this.sphereBody2.position.y, -this.sphereBody2.position.z ).normalize();
-		// 	v.scale(9.8, this.sphereBody2.force);
-		// 	this.sphereBody2.applyLocalForce(v, this.sphereBody2.position);
-		// 	this.sphereBody2.force.y += this.sphereBody2.mass;
-
-		// 	this.sphere2.position.set(this.sphereBody2.position.x, this.sphereBody2.position.y, this.sphereBody2.position.z)
-		// 	this.sphere2.quaternion.set(
-		// 		this.sphereBody2.quaternion.x,
-		// 		this.sphereBody2.quaternion.y,
-		// 		this.sphereBody2.quaternion.z,
-		// 		this.sphereBody2.quaternion.w
-		// 	)
-		// }
-	}
-	
-	renderBall() {
+		//console.log(this.sphereBody?.position);
 		const delta = this.clock != null? this.clock.getDelta(): 0;
-		if ( this.collider ) {
-			//this.collider.visible = true;
-			//this.visualizer != null? this.visualizer.visible = true: null;
-			if ( ! this.params.pause ) {
-				this.update( this.params.simulationSpeed * delta );
-			}
+
+		const inside = new THREE.Vector3()
+		.subVectors(new THREE.Vector3(), this.sphere.position)
+		.normalize()
+
+		// this.arrowHelper = new THREE.ArrowHelper( inside, this.sphere.position, 5, 0x00ff00 );
+		// this.scene.add( this.arrowHelper );
+
+		//this.world?.gravity.set(inside.x, inside.y, inside.z).normalize()
+		//this.world?.gravity.set(inside.x, inside.y, inside.z); // Set gravity to 9.81 m/s²
+
+		this.world?.step(1 / 60, delta, 5); // Fixed time step with interpolation
+		//this.world?.step(delta); // Fixed time step with interpolation
+
+		const movementVector = this.walkies();
+		this.sphereBody?.velocity.set(2*movementVector.x, 2*movementVector.y, 2*movementVector.z);
+
+		if (this.sphereBody){
+			this.sphere.position.set(this.sphereBody.position.x, this.sphereBody.position.y, this.sphereBody.position.z)
+			this.sphere.quaternion.set(
+				this.sphereBody.quaternion.x,
+				this.sphereBody.quaternion.y,
+				this.sphereBody.quaternion.z,
+				this.sphereBody.quaternion.w
+			)
 		}
 	}
+	
+	getSpawnPosition(p: THREE.Vector3) {
+        const raycaster = new THREE.Raycaster()
+        const outside = p.clone();
+	
+        const inside = new THREE.Vector3()
+            .subVectors(new THREE.Vector3(), outside)
+            .normalize()
+			
+        raycaster.set(outside, inside);
+		let pos = new THREE.Vector3()
+		if (this.planet && this.planet.Mesh){
+			const intersects = raycaster.intersectObject(this.planet.Mesh, false)
+			if (intersects.length > 0) {
+				pos = intersects[0].point.addScaledVector(outside.normalize(), 1.1)
+			}
+		}
+        return pos
+    }
+
 
     keyDownFunc(e : KeyboardEvent){
-		console.log("fired");
         switch ( e.code ) {
 			case 'KeyW': this.fwdPressed = true; break;
 			case 'KeyS': this.bkdPressed = true; break;
@@ -322,11 +223,9 @@ export class collisionTest{
 			case 'KeyA': this.lftPressed = true; break;
 			case 'Space': this.spacePressed = true; break;
 		};
-		console.log(this.fwdPressed);
     }
 
     keyUpFunc(e : KeyboardEvent){
-		console.log("unfired");
         switch ( e.code ) {
             case 'KeyW': this.fwdPressed = false; break;
             case 'KeyS': this.bkdPressed = false; break;
@@ -335,4 +234,13 @@ export class collisionTest{
             case 'Space': this.spacePressed = false; break;
         }
     }
+
+	stepFunc(){
+		const v = new CANNON.Vec3();
+		if (this.sphereBody){
+			v.set( -this.sphereBody?.position.x, -this.sphereBody.position.y, -this.sphereBody.position.z ).normalize();
+			v.scale(9.8, this.sphereBody.force);
+			this.sphereBody.applyLocalForce(v, this.sphereBody.position);
+		}
+	}
 }
