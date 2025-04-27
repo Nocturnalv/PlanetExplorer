@@ -13,6 +13,7 @@ class Global {
     #scene: THREE.Scene
     #renderer: THREE.WebGLRenderer
     #testScene: collisionTest
+    #debugLightSphere: THREE.Mesh
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -30,14 +31,22 @@ class Global {
         let settings = new Settings();
         this.#activePlanet = new Planet(settings, this.#scene)
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
-        shader.uniforms.u_cameraPosition.value = this.#camera.position;
-        
-        this.#testScene = new collisionTest(this.#scene, this.ActivePlanet);
+        shader.uniforms.u_cameraPos.value = this.#camera.position;
+        this.#testScene = new collisionTest(this.#scene);
+
+        this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
+        this.#scene.add(this.#debugLightSphere)
     }
 
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
+
+        // Update camera pos…  this had sure better be temporary
+        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        shader.uniforms.u_cameraPos.value = this.#camera.position;
+        let lightPos: THREE.Vector3 = shader.uniforms.u_lightPos.value;
+        this.#debugLightSphere.position.set(lightPos.x, lightPos.y, lightPos.z);
         this.#testScene.update();
     }
 }
