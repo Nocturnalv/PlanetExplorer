@@ -4,17 +4,24 @@ import { Planet } from "./planet";
 
 export class Settings {
     Radius: number = 5
-    FlatAColor: THREE.Color = new THREE.Color()
-    FlatBColor: THREE.Color = new THREE.Color()
-    SteepAColor: THREE.Color = new THREE.Color()
-    SteepBColor: THREE.Color = new THREE.Color()
-    HeightNoiseSeed: number = 0;
-    HeightScale: number = 0.05;
-    HeightNoiseScale: number = 1.0;
-    BiomeNoiseSeed: number = 0;
-    BiomeNoiseScale: number = 1.0;
+    FlatAColor: THREE.Color = new THREE.Color(Math.random(), Math.random(), Math.random())
+    FlatBColor: THREE.Color = new THREE.Color(Math.random(), Math.random(), Math.random())
+    SteepAColor: THREE.Color = new THREE.Color(Math.random(), Math.random(), Math.random())
+    SteepBColor: THREE.Color = new THREE.Color(Math.random(), Math.random(), Math.random())
+    HeightNoiseSeed: number = 0
+    HeightScale: number = 0.05
+    HeightNoiseScale: number = 1.0
+    BiomeNoiseSeed: number = 0
+    BiomeNoiseScale: number = 0.6
     UseColorBanding: boolean = false
-    NumberColorBands: number = 10;
+    NumberColorBands: number = 10
+    CameraPos: THREE.Vector3 = new THREE.Vector3()
+    LightPos: THREE.Vector3 = new THREE.Vector3(6.0, 0.0, 0.0)
+    LightColor: THREE.Color = new THREE.Color()
+    PlanetEmissivity: THREE.Color = new THREE.Color(0x000000)
+    PlanetRoughness: number = 0.65
+    PlanetReflectance: THREE.Color = new THREE.Color()
+    TriplanarNormalBlend: THREE.Vector3 = new THREE.Vector3(0.1, 0.1, 0.1);
 
     WidthSegments = 256
     HeightSegments = 256
@@ -23,7 +30,7 @@ export class Settings {
 
     SetupPlanetListeners(planet: Planet): void {
         this.Pane.addBinding(this, "Radius", { label: "Radius", min: 1, max: 10, step: 0.1 })
-            .on("change", planet.ChangeMeshRadius.bind(planet))
+            .on("change", planet.UpdateUniforms.bind(planet))
         let planetCols: FolderApi = this.Pane.addFolder({ title: "Planet Colours" }).on("change", planet.UpdateUniforms.bind(planet))
         planetCols.addBinding(this, "FlatAColor", { color: { type: "float" }, label: "Flat Color A" })
         planetCols.addBinding(this, "FlatBColor", { color: { type: "float" }, label: "Flat Color B" })
@@ -38,6 +45,12 @@ export class Settings {
         let rendering: FolderApi = this.Pane.addFolder({ title: "Rendering" }).on("change", planet.UpdateUniforms.bind(planet))
         rendering.addBinding(this, "UseColorBanding", { label: "Use Color Banding" })
         rendering.addBinding(this, "NumberColorBands", { min: 1, max: 25, step: 1, label: "Number of Color Bands" })
+        rendering.addBinding(this, "LightPos", { label: "Light Position" })
+        rendering.addBinding(this, "LightColor", { color: { type: "float" }, label: "Light Color" })
+        rendering.addBinding(this, "PlanetEmissivity", { color: { type: "float" }, label: "Planet Emissivity" })
+        rendering.addBinding(this, "PlanetRoughness", { min: 0.0, max: 1.0, step: 0.01, label: "Planet Roughness" })
+        rendering.addBinding(this, "PlanetReflectance", { color: { type: "float" }, label: "Planet Reflectance" })
+        rendering.addBinding(this, "TriplanarNormalBlend", { label: "Triplanar Normal Blending" })
     }
 
     constructor() { }
