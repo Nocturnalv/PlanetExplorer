@@ -41,13 +41,13 @@ class Global {
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
-        this.#testScene.renderBall();
 
         // Update camera pos…  this had sure better be temporary
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
         let lightPos: THREE.Vector3 = shader.uniforms.u_lightPos.value;
         this.#debugLightSphere.position.set(lightPos.x, lightPos.y, lightPos.z);
+        this.#testScene.update();
     }
 }
 
