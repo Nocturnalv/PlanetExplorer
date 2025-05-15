@@ -22,6 +22,7 @@ export class Settings {
     PlanetRoughness: number = 0.65
     PlanetReflectance: THREE.Color = new THREE.Color()
     TriplanarNormalBlend: THREE.Vector3 = new THREE.Vector3(0.1, 0.1, 0.1);
+    TardisPosition: THREE.Vector3 = new THREE.Vector3(7, 0, 3);
 
     WidthSegments = 256
     HeightSegments = 256
@@ -51,6 +52,7 @@ export class Settings {
         rendering.addBinding(this, "PlanetRoughness", { min: 0.0, max: 1.0, step: 0.01, label: "Planet Roughness" })
         rendering.addBinding(this, "PlanetReflectance", { color: { type: "float" }, label: "Planet Reflectance" })
         rendering.addBinding(this, "TriplanarNormalBlend", { label: "Triplanar Normal Blending" })
+        rendering.addBinding(this, "TardisPosition", { label: "TARDIS Position" });
     }
 
     constructor() { }
