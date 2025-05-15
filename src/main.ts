@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Planet } from "./planet";
 import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
-
+import { loadTardis, updateTardis } from './tardis';
 
 // I’m sure there’s a better name for this
 class Global {
@@ -36,11 +36,14 @@ class Global {
 
         this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
         this.#scene.add(this.#debugLightSphere)
+
+        loadTardis(this.#scene, settings);
     }
 
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
+        updateTardis();
 
         // Update camera pos…  this had sure better be temporary
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
