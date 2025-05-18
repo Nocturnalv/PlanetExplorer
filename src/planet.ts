@@ -65,7 +65,7 @@ export class Planet {
                 u_roughness: { value: this.Settings.PlanetRoughness },
                 u_baseReflectance: { value: this.Settings.PlanetReflectance },
                 u_normalMapBlend: { value: this.Settings.TriplanarNormalBlend },
-                u_moonNormal: { value: new THREE.TextureLoader().load("assets/moon_normal.jpg") }
+                u_moonNormal: { value: new THREE.TextureLoader().load("assets/moon_normal.png") }
             }
         })
         geometry.computeVertexNormals()

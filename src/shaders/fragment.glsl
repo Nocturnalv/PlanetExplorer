@@ -131,46 +131,23 @@ vec3 albedo()
     return finalCol;
 }
 
-vec3 triplanarNormal(vec3 vertexNormal)
+vec3 triplanar(vec3 vertexNormal)
 {
-    vec3 tangent = normalize(v_tangent.xyz / v_tangent.w);
-    vec3 bitangent = normalize(cross(vertexNormal, tangent));
-    mat3 tangentToWorld = mat3(tangent, bitangent, vertexNormal);
-
-    vec2 xPlane = abs(normalize(v_vertexPos).zy);
-    vec2 yPlane = abs(normalize(v_vertexPos).xz);
-    vec2 zPlane = abs(normalize(v_vertexPos).xy);
-
-    vec3 xTangentNormal = texture(u_moonNormal, xPlane).xyz * 2.0f - 1.0f;
-    vec3 yTangentNormal = texture(u_moonNormal, yPlane).xyz * 2.0f - 1.0f;
-    vec3 zTangentNormal = texture(u_moonNormal, zPlane).xyz * 2.0f - 1.0f;
-
-    // xTangentNormal = vec3(xTangentNormal.xy + vertexNormal.zy, abs(xTangentNormal.z) * vertexNormal.x);
-    // yTangentNormal = vec3(yTangentNormal.xy + vertexNormal.xz, abs(yTangentNormal.z) * vertexNormal.y);
-    // zTangentNormal = vec3(zTangentNormal.xy + vertexNormal.xy, abs(zTangentNormal.z) * vertexNormal.z);
-
-    // vec3 mappedNormal = normalize(xTangentNormal.zyx * u_normalMapBlend.x + yTangentNormal.xzy * u_normalMapBlend.y + zTangentNormal.xyz * u_normalMapBlend.z);
-    // return mappedNormal;
-    // return normalize(xTangentNormal + yTangentNormal + zTangentNormal);
-    vec3 blend = normalize(pow(abs(vertexNormal), 1.0f / u_normalMapBlend));
-    vec3 xTexture = xTangentNormal * blend.x;
-    vec3 yTexture = yTangentNormal * blend.y;
-    vec3 zTexture = zTangentNormal * blend.z;
-
-    return xTexture + yTexture + zTangentNormal;
+    vec3 vertex = abs(normalize(v_vertexPos));
+    vec3 normal = abs(round(vertexNormal));
+    vec2 uv = mix(mix(mix(vertex.xy, vertex.zy, normal.x), vertex.xz, normal.y), vertex.xy, normal.z);
+    return vertexNormal + 0.1 * (texture(u_moonNormal, uv).xyz * 2.0f - 1.0f);
 }
 
 void main()
 {
-    vec3 normal = normalize(v_vertexNormal);
-    // vec3 normal = vertexNormal + mapNormal;
-    // vec3 normal = triplanarNormal(normalize(v_vertexNormal));
+    vec3 normal = triplanar(normalize(v_vertexNormal));
     vec3 view = normalize(u_cameraPos - v_vertexPos);
     vec3 light = normalize(u_lightPos);
     vec3 halfView = normalize(view + light);
     vec3 albedo = albedo();
 
     vec3 color = pbr(normal, view, light, halfView, albedo);
-    // vec3 color = normal;
+    // vec3 color = triplanarTest(normalize(v_vertexNormal));
     gl_FragColor = vec4(color, 1.0f);
 }
