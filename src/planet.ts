@@ -3,13 +3,15 @@ import { Settings } from "./settings"
 import VertexShader from "./shaders/vertex.glsl";
 import FragmentShader from "./shaders/fragment.glsl";
 import { SimplexNoise } from 'three/examples/jsm/Addons.js';
+import { seededRandom } from 'three/src/math/MathUtils.js';
 
 export class Planet {
     #sphere: THREE.Mesh | null = null
     // The percentage of the sphere’s radius by which it can be deformed. Domain [0, 1].
     #settings: Settings = new Settings()
     #scene: THREE.Scene
-    #noise = new SimplexNoise()
+    #noises: SimplexNoise[] = []
+    #noiseOffsets: THREE.Vector3[] = []
 
     get Settings() { return this.#settings }
     get Mesh() { return this.#sphere }
@@ -23,8 +25,15 @@ export class Planet {
         let vertexBuf = this.#sphere.geometry.getAttribute("position");
         for (var i: number = 0; i < vertexBuf.count; i++) {
             let vertexPos = new THREE.Vector3(vertexBuf.getX(i), vertexBuf.getY(i), vertexBuf.getZ(i))
-            let samplePos = vertexPos.multiplyScalar(this.Settings.BiomeNoiseScale);
-            let sample = this.#noise.noise3d(samplePos.x, samplePos.y, samplePos.z) * this.Settings.HeightNoiseScale;
+            let samplePos = vertexPos.multiplyScalar(this.Settings.HeightNoiseScale);
+            let sample = 0.0;
+            for (var j = 0; j < this.#noises.length; j++) {
+                let noise = this.#noises[j]
+                let offset = this.#noiseOffsets[j]
+                let p = (j + 1) / this.#noises.length
+                let strength = 1.0 - Math.pow(p, this.Settings.HeightNoiseEffectFalloff);
+                sample += noise.noise3d(samplePos.x + offset.x, samplePos.y + offset.y, samplePos.z + offset.z) * strength
+            }
             let displacement = sample * this.Settings.HeightScale * this.Settings.Radius
             let displacedPos = vertexPos.normalize().multiplyScalar(this.Settings.Radius + displacement);
             vertexBuf.setXYZ(i, displacedPos.x, displacedPos.y, displacedPos.z)
@@ -32,6 +41,21 @@ export class Planet {
         vertexBuf.needsUpdate = true
         this.#sphere.geometry.computeVertexNormals()
         this.#sphere.geometry.computeTangents()
+    }
+
+    GenerateOctaves() {
+        while (this.#noises.length > this.#settings.HeightNoiseOctaves)
+            this.#noises.pop()
+        this.#noiseOffsets.pop()
+        while (this.#noises.length < this.#settings.HeightNoiseOctaves) {
+            this.#noises.push(new SimplexNoise())
+            let base = this.#settings.HeightNoiseSeed + this.#noises.length * 3;
+            this.#noiseOffsets.push(new THREE.Vector3(
+                seededRandom(base) * 1000000000,
+                seededRandom(base + 1) * 1000000000,
+                seededRandom(base + 2) * 1000000000
+            ))
+        }
     }
 
     GenerateMesh(): void {
@@ -64,7 +88,6 @@ export class Planet {
                 u_emissivity: { value: this.Settings.PlanetEmissivity },
                 u_roughness: { value: this.Settings.PlanetRoughness },
                 u_baseReflectance: { value: this.Settings.PlanetReflectance },
-                u_normalMapBlend: { value: this.Settings.TriplanarNormalBlend },
                 u_moonNormal: { value: new THREE.TextureLoader().load("assets/texture/normal/moon_normal.png") }
             }
         })
@@ -96,7 +119,6 @@ export class Planet {
         shader.uniforms.u_emissivity.value = this.Settings.PlanetEmissivity
         shader.uniforms.u_roughness.value = this.Settings.PlanetRoughness
         shader.uniforms.u_baseReflectance.value = this.Settings.PlanetReflectance
-        shader.uniforms.u_normalMapBlend.value = this.Settings.TriplanarNormalBlend
         console.log("Update mesh uniforms");
         this.RegenerateMesh()
     }
@@ -105,6 +127,7 @@ export class Planet {
         this.#settings = settings
         this.#scene = scene
         this.Settings.SetupPlanetListeners(this)
+        this.GenerateOctaves()
         this.GenerateMesh()
         this.UpdateMesh()
     }

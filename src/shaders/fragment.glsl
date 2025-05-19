@@ -127,7 +127,7 @@ vec3 albedo()
     float height = (length(v_vertexPos / normalize(v_vertexPos)) - u_radius) * 0.5f + 0.5f;
     vec3 steepColor = mix(u_steepAColor, u_steepBColor, height);
     float steepness = 1.0f - dot(v_vertexNormal, normalize(v_vertexPos));
-    vec3 finalCol = mix(biomeColor, steepColor, steepness);
+    vec3 finalCol = mix(biomeColor, steepColor, steepness * 2.0);
     return finalCol;
 }
 
