@@ -119,7 +119,6 @@ export class Planet {
         shader.uniforms.u_emissivity.value = this.Settings.PlanetEmissivity
         shader.uniforms.u_roughness.value = this.Settings.PlanetRoughness
         shader.uniforms.u_baseReflectance.value = this.Settings.PlanetReflectance
-        console.log("Update mesh uniforms");
         this.RegenerateMesh()
     }
 

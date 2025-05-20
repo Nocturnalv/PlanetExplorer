@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { Pane, FolderApi } from "tweakpane";
+import { Pane, FolderApi, BladeApi } from "tweakpane";
 import { Planet } from "./planet";
-import { mx_hash_int_3 } from "three/src/nodes/materialx/lib/mx_noise.js";
+import { seededRandom } from "three/src/math/MathUtils.js";
 
 export class Settings {
     Radius: number = 5
@@ -29,9 +29,13 @@ export class Settings {
     HeightSegments = 256
 
     Pane: Pane = new Pane({ title: "Planet Configuration" })
+    PlanetBindings: BladeApi[] = []
 
     SetupPlanetListeners(planet: Planet): void {
-        this.Pane.addBinding(this, "Radius", { label: "Radius", min: 1, max: 10, step: 0.1 })
+        for (var api of this.PlanetBindings)
+            this.Pane.remove(api)
+        this.PlanetBindings = []
+        let radius = this.Pane.addBinding(this, "Radius", { label: "Radius", min: 1, max: 10, step: 0.1 })
             .on("change", planet.UpdateUniforms.bind(planet))
         let planetCols: FolderApi = this.Pane.addFolder({ title: "Planet Colours" }).on("change", planet.UpdateUniforms.bind(planet))
         planetCols.addBinding(this, "FlatAColor", { color: { type: "float" }, label: "Flat Color A" })
@@ -54,6 +58,29 @@ export class Settings {
         rendering.addBinding(this, "PlanetEmissivity", { color: { type: "float" }, label: "Planet Emissivity" })
         rendering.addBinding(this, "PlanetRoughness", { min: 0.0, max: 1.0, step: 0.01, label: "Planet Roughness" })
         rendering.addBinding(this, "PlanetReflectance", { color: { type: "float" }, label: "Planet Reflectance" })
+        this.PlanetBindings = [radius, planetCols, planetNoise, rendering]
+    }
+
+    Randomise(seed: number) {
+        this.Radius = 5.0 + 2.0 * (seededRandom(seed) * 2.0 - 1.0)
+        seed += 1
+        this.FlatAColor = new THREE.Color(seededRandom(seed), seededRandom(seed + 1), seededRandom(seed + 2))
+        seed += 3
+        this.FlatBColor = new THREE.Color(seededRandom(seed), seededRandom(seed + 1), seededRandom(seed + 2))
+        seed += 3
+        this.SteepAColor = new THREE.Color(seededRandom(seed), seededRandom(seed + 1), seededRandom(seed + 2))
+        seed += 3
+        this.SteepBColor = new THREE.Color(seededRandom(seed), seededRandom(seed + 1), seededRandom(seed + 2))
+        seed += 3
+        this.HeightNoiseSeed = seededRandom(seed) * Number.MAX_SAFE_INTEGER
+        seed += 1
+        this.HeightScale = 0.05 + 0.025 * (seededRandom(seed) * 2.0 - 1.0)
+        seed += 1
+        this.HeightNoiseScale = 1.0 + 0.5 * (seededRandom(seed) * 2.0 - 1.0)
+        seed += 1
+        this.BiomeNoiseSeed = this.HeightNoiseSeed = seededRandom(seed) * Number.MAX_SAFE_INTEGER
+        seed += 1
+        // TODO: BiomeNoiseScale: number = 0.6
     }
 
     constructor() { }
