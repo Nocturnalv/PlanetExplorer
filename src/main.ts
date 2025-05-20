@@ -51,9 +51,6 @@ class Global {
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
         this.#testScene = new collisionTest(this.#scene);
-
-        this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
-        this.#scene.add(this.#debugLightSphere)
     }
 
     Tick() {
@@ -63,8 +60,6 @@ class Global {
         // Update camera pos…  this had sure better be temporary
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
-        let lightPos: THREE.Vector3 = shader.uniforms.u_lightPos.value;
-        this.#debugLightSphere.position.set(lightPos.x, lightPos.y, lightPos.z);
         this.#testScene.update();
     }
 }

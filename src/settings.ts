@@ -19,7 +19,7 @@ export class Settings {
     UseColorBanding: boolean = false
     NumberColorBands: number = 10
     CameraPos: THREE.Vector3 = new THREE.Vector3()
-    LightPos: THREE.Vector3 = new THREE.Vector3(6.0, 0.0, 0.0)
+    LightPos: THREE.Vector3 = new THREE.Vector3(15.0, 0.0, 0.0)
     LightColor: THREE.Color = new THREE.Color()
     PlanetEmissivity: THREE.Color = new THREE.Color(0x000000)
     PlanetRoughness: number = 0.65
