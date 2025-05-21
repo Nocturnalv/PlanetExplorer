@@ -3,17 +3,20 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Planet } from "./planet";
 import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
+import { stars } from "./stars.ts";
+
 
 
 // I’m sure there’s a better name for this
 class Global {
     #activePlanet: Planet
-    //#controls: OrbitControls
+    #controls: OrbitControls
     #camera: THREE.PerspectiveCamera
     #scene: THREE.Scene
     #renderer: THREE.WebGLRenderer
     #testScene: collisionTest
     #debugLightSphere: THREE.Mesh
+    #stars: stars
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -23,10 +26,11 @@ class Global {
         document.body.appendChild(this.#renderer.domElement);
         this.#scene = new THREE.Scene();
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    //    this.#camera.position.set(10, 10, 10)
-    //    this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
-    //    this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+       this.#camera.position.set(10, 10, 10)
+       this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+       this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
+        this.#stars = new stars(this.#scene);
 
         let settings = new Settings();
         this.#activePlanet = new Planet(settings, this.#scene)
@@ -36,10 +40,12 @@ class Global {
 
         this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
         this.#scene.add(this.#debugLightSphere)
+        this.#stars.generateStars();
+       // this.#stars.generateMoons();
     }
 
     Tick() {
-        //this.#controls.update()
+        this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
 
         // Update camera pos…  this had sure better be temporary
