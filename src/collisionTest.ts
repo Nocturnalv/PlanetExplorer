@@ -23,10 +23,9 @@ export class collisionTest{
 
 	// Controls
 	fwdPressed: boolean | null = null;
-  bkdPressed: boolean | null = null;
-  rgtPressed: boolean | null = null;
-  lftPressed: boolean | null = null;
-  spacePressed: boolean | null = null;
+	bkdPressed: boolean | null = null;
+	rgtPressed: boolean | null = null;
+	lftPressed: boolean | null = null;
 	mouse: THREE.Vector2 = new THREE.Vector2(0,0);
 
 	// Debug
@@ -42,7 +41,7 @@ export class collisionTest{
         this.planet = planet;
 		//this.camera = camera;
 
-		this.fwdPressed, this.bkdPressed, this.rgtPressed, this.lftPressed, this.spacePressed = false;
+		this.fwdPressed, this.bkdPressed, this.rgtPressed, this.lftPressed;
 
 		this.world = new CANNON.World();                   
 
@@ -56,14 +55,13 @@ export class collisionTest{
                 contactEquationStiffness: 1000,
 			});
 
-
-    this.world.addContactMaterial(playerGroundContactMaterial);
+   		this.world.addContactMaterial(playerGroundContactMaterial);
 
 		this.planetBody = this.generatePlanetCollider(this.groundMaterial);
 		this.world.addBody(this.planetBody);
 
-		this.collider = this.generatePlanetColliderDebug();
-		this.scene.add(this.collider);
+		// this.collider = this.generatePlanetColliderDebug();
+		// this.scene.add(this.collider);
 
 		this.sphere = this.createSphere();
 		this.scene.add(this.sphere);
@@ -77,8 +75,8 @@ export class collisionTest{
 		this.mouseMoveFunc = this.mouseMoveFunc.bind(this);
 		window.addEventListener('keydown', this.keyDownFunc);
 		window.addEventListener('keyup', this.keyUpFunc);
-		this.world.addEventListener('postStep', this.stepFunc);
 		document.addEventListener('mousemove', this.mouseMoveFunc);
+		this.world.addEventListener('postStep', this.stepFunc);
 
 		this.planetBody?.addEventListener('collide', (event: any) => {
 			console.log('Collision detected with:', event.body);
@@ -87,24 +85,24 @@ export class collisionTest{
 
 		this.yawObject = new THREE.Object3D();
 
-		this.cannonDebugRenderer = new CannonDebugRenderer(this.scene, this.world)
+		//this.cannonDebugRenderer = new CannonDebugRenderer(this.scene, this.world)
 	}
 
 	generatePlanetCollider(material: CANNON.Material){
 		if (this.planet && this.planet.Mesh) {
 
-			const merged = BufferGeometryUtils.mergeVertices(this.planet.Mesh.geometry.clone());
-			merged.computeVertexNormals();
+			const mergedGeo = BufferGeometryUtils.mergeVertices(this.planet.Mesh.geometry.clone());
+			mergedGeo.computeVertexNormals();
 
-			const shape = this.createTrimesh(merged);
-			shape.updateTree();
+			const colliderShape = this.createTrimesh(mergedGeo);
+			colliderShape.updateTree();
 
 			const planetBody = new CANNON.Body({
 				mass: 0,
 				material: material,
 			})
 
-			planetBody.addShape(shape)
+			planetBody.addShape(colliderShape)
 			planetBody.position.set(this.planet.Mesh.position.x, this.planet.Mesh.position.y, this.planet.Mesh.position.z)
 			planetBody.quaternion.set(this.planet.Mesh.quaternion.x, this.planet.Mesh.quaternion.y, this.planet.Mesh.quaternion.z, this.planet.Mesh.quaternion.w)
 			planetBody.collisionResponse = true;	
@@ -124,10 +122,7 @@ export class collisionTest{
 		});
 		let collider;
 		if(this.planet && this.planet.Mesh){
-		const clonedGeometry = this.planet?.Mesh?.geometry.clone();
-
-		// Merge vertices and ensure indexed geometry
-		const merged = BufferGeometryUtils.mergeVertices(clonedGeometry);
+		const merged = BufferGeometryUtils.mergeVertices(this.planet?.Mesh?.geometry.clone());
 		merged.computeVertexNormals();
 			collider = new THREE.Mesh(merged, colliderMaterial );
 		}else{
@@ -142,6 +137,8 @@ export class collisionTest{
 			new THREE.MeshBasicMaterial( { 
 				wireframe: false,
 				color: 0x00ff00,
+				transparent: true,
+				opacity: 0.5,
 		}));
 		let spherePos = this.spawnPos(new THREE.Vector3(20, 20, 0));
 		sphere.position.set(spherePos.x, spherePos.y, spherePos.z);
@@ -244,7 +241,6 @@ export class collisionTest{
 			case 'KeyS': this.bkdPressed = true; break;
 			case 'KeyD': this.rgtPressed = true; break;
 			case 'KeyA': this.lftPressed = true; break;
-			case 'Space': this.spacePressed = true; break;
 		};
     }
 
@@ -254,10 +250,8 @@ export class collisionTest{
             case 'KeyS': this.bkdPressed = false; break;
             case 'KeyD': this.rgtPressed = false; break;
             case 'KeyA': this.lftPressed = false; break;
-            case 'Space': this.spacePressed = false; break;
         }
     }
-
 
 	stepFunc(){
 		const v = new CANNON.Vec3();
@@ -271,9 +265,7 @@ export class collisionTest{
 	mouseMoveFunc(e : any){
 		this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
 		this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-		const { movementX, movementY } = e
-
+		const { movementX, movementY } = e;
 		if (this.yawObject){
 			this.yawObject.rotation.y -= movementX * 0.003;
 		}
@@ -282,19 +274,40 @@ export class collisionTest{
 	createTrimesh(geometry: THREE.BufferGeometry): CANNON.Trimesh {
 		const geo = BufferGeometryUtils.mergeVertices(geometry.clone());
 		if (!geo.index) {
-			throw new Error("Geometry must be indexed for Trimesh");
+			throw new Error("");
 		}
 
-		const positionAttr = geo.attributes.position;
-		const indexAttr = geo.index;
 		const vertices = [];
-		for (let i = 0; i < positionAttr.count; i++) {
-			vertices.push(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i));
+		for (let i = 0; i < geo.attributes.position.count; i++) {
+			vertices.push(geo.attributes.position.getX(i), geo.attributes.position.getY(i), geo.attributes.position.getZ(i));
 		}
 		const indices = [];
-		for (let i = 0; i < indexAttr.count; i++) {
-			indices.push(indexAttr.getX(i));
+		for (let i = 0; i < geo.index.count; i++) {
+			indices.push(geo.index.getX(i));
 		}
 		return new CANNON.Trimesh(vertices, indices);
 	}  
+
+	disposeAll() {
+    if (this.collider) {
+        this.scene.remove(this.collider);
+        if (this.collider.geometry) this.collider.geometry.dispose();
+        if (this.collider.material && 'dispose' in this.collider.material) {
+            (this.collider.material as THREE.Material).dispose();
+        }
+        this.collider = null;
+    }
+
+    if (this.planetBody && this.world && this.sphereBody) {
+        this.world.removeBody(this.planetBody);
+		this.world.removeBody(this.sphereBody);
+        this.planetBody = null;
+		this.sphereBody = null;
+    }
+
+    if (this.sphere ) {
+        this.scene.remove(this.sphere);
+		this.planet = null;
+    }
+}
 }

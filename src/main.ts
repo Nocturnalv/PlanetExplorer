@@ -15,7 +15,6 @@ class Global {
     #scene: THREE.Scene
     #renderer: THREE.WebGLRenderer
     #testScene: collisionTest
-    #debugLightSphere: THREE.Mesh
     #settings: Settings
     #stars: stars
 
@@ -29,9 +28,18 @@ class Global {
                 this.ActivePlanet.Mesh?.material.forEach(mat => mat.dispose())
             else
                 this.ActivePlanet.Mesh?.material.dispose()
-            this.#scene.remove(this.ActivePlanet.Mesh!)
+                this.#scene.remove(this.ActivePlanet.Mesh!)
+        }
+        if (this.#testScene != null) {
+            this.#testScene.disposeAll();
+        }
+        if (this.#stars != null) {
+            this.#stars.disposeStars();
         }
         this.#activePlanet = new Planet(this.#settings, this.#scene)
+        this.#testScene = new collisionTest(this.#scene, this.#activePlanet, this.#camera);
+        this.#stars = new stars(this.#scene);
+        this.#stars.generateStars();
     }
 
     constructor() {
@@ -40,12 +48,10 @@ class Global {
         document.body.appendChild(this.#renderer.domElement);
         this.#scene = new THREE.Scene();
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-       this.#camera.position.set(10, 10, 10)
-       this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
-       this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+        this.#camera.position.set(10, 10, 10)
+        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+        this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
-        this.#stars = new stars(this.#scene);
-
         this.#settings = new Settings();
         this.#settings.Pane.addButton({
             title: "Generate",
@@ -54,14 +60,11 @@ class Global {
         this.GenerateNewPlanet()
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
-        this.#testScene = new collisionTest(this.#scene, this.#activePlanet, this.#camera);
-        this.#stars.generateStars();
     }
 
     Tick() {
         this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
-
         // Update camera pos…  this had sure better be temporary
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
