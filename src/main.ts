@@ -16,9 +16,23 @@ class Global {
     #renderer: THREE.WebGLRenderer
     #testScene: collisionTest
     #debugLightSphere: THREE.Mesh
+    #settings: Settings
     #stars: stars
 
     get ActivePlanet() { return this.#activePlanet }
+
+    GenerateNewPlanet() {
+        this.#settings.Randomise(Math.random() * 100)
+        if (this.ActivePlanet != null) {
+            this.ActivePlanet.Mesh?.geometry.dispose()
+            if (this.ActivePlanet.Mesh?.material instanceof Array)
+                this.ActivePlanet.Mesh?.material.forEach(mat => mat.dispose())
+            else
+                this.ActivePlanet.Mesh?.material.dispose()
+            this.#scene.remove(this.ActivePlanet.Mesh!)
+        }
+        this.#activePlanet = new Planet(this.#settings, this.#scene)
+    }
 
     constructor() {
         this.#renderer = new THREE.WebGLRenderer();
@@ -32,16 +46,16 @@ class Global {
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
         this.#stars = new stars(this.#scene);
 
-        let settings = new Settings();
-        this.#activePlanet = new Planet(settings, this.#scene)
+        this.#settings = new Settings();
+        this.#settings.Pane.addButton({
+            title: "Generate",
+            label: "New Planet"
+        }).on("click", this.GenerateNewPlanet.bind(this))
+        this.GenerateNewPlanet()
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
         this.#testScene = new collisionTest(this.#scene, this.#activePlanet, this.#camera);
-
-        this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
-        this.#scene.add(this.#debugLightSphere)
         this.#stars.generateStars();
-       // this.#stars.generateMoons();
     }
 
     Tick() {
@@ -51,8 +65,6 @@ class Global {
         // Update camera pos…  this had sure better be temporary
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
-        let lightPos: THREE.Vector3 = shader.uniforms.u_lightPos.value;
-        this.#debugLightSphere.position.set(lightPos.x, lightPos.y, lightPos.z);
         this.#testScene.update();
     }
 }

@@ -23,10 +23,10 @@ export class collisionTest{
 
 	// Controls
 	fwdPressed: boolean | null = null;
-    bkdPressed: boolean | null = null;
-    rgtPressed: boolean | null = null;
-    lftPressed: boolean | null = null;
-    spacePressed: boolean | null = null;
+  bkdPressed: boolean | null = null;
+  rgtPressed: boolean | null = null;
+  lftPressed: boolean | null = null;
+  spacePressed: boolean | null = null;
 	mouse: THREE.Vector2 = new THREE.Vector2(0,0);
 
 	// Debug
@@ -46,7 +46,7 @@ export class collisionTest{
 
 		this.world = new CANNON.World();                   
 
-		this.groundMaterial = new CANNON.Material('groundMaterial')
+        this.groundMaterial = new CANNON.Material('groundMaterial')
         this.playerMaterial = new CANNON.Material('playerMaterial')
         const playerGroundContactMaterial = new CANNON.ContactMaterial(
             this.playerMaterial,
@@ -56,7 +56,8 @@ export class collisionTest{
                 contactEquationStiffness: 1000,
 			});
 
-        this.world.addContactMaterial(playerGroundContactMaterial);
+
+    this.world.addContactMaterial(playerGroundContactMaterial);
 
 		this.planetBody = this.generatePlanetCollider(this.groundMaterial);
 		this.world.addBody(this.planetBody);
@@ -247,8 +248,8 @@ export class collisionTest{
 		};
     }
 
-    keyUpFunc(e : KeyboardEvent){
-        switch ( e.code ) {
+    keyUpFunc(e: KeyboardEvent) {
+        switch (e.code) {
             case 'KeyW': this.fwdPressed = false; break;
             case 'KeyS': this.bkdPressed = false; break;
             case 'KeyD': this.rgtPressed = false; break;
@@ -256,6 +257,7 @@ export class collisionTest{
             case 'Space': this.spacePressed = false; break;
         }
     }
+
 
 	stepFunc(){
 		const v = new CANNON.Vec3();
