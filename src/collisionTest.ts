@@ -4,6 +4,8 @@ import { Settings } from "./settings";
 import * as CANNON from 'cannon-es';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import CannonDebugRenderer from "./debugCollision/cannonDebugRenderer";
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 
 export class collisionTest{
 	scene: THREE.Scene;
@@ -15,8 +17,10 @@ export class collisionTest{
 	world: CANNON.World | null = null;
 	pitchObject: THREE.Object3D | null = null;
 	yawObject: THREE.Object3D | null = null;
+	textGeo: TextGeometry | null = null;
 
 	//camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+	camera: THREE.PerspectiveCamera;
 
 	groundMaterial: CANNON.Material | null = null;
 	playerMaterial: CANNON.Material | null = null;
@@ -35,11 +39,13 @@ export class collisionTest{
 
 	//get cameraFunc() { return this.camera; }
 
+	loader: FontLoader = new FontLoader();
+
 	constructor(scene : THREE.Scene, planet : Planet, camera : THREE.PerspectiveCamera) {
 		this.scene = scene;
 		this.clock = new THREE.Clock();
         this.planet = planet;
-		//this.camera = camera;
+		this.camera = camera;
 
 		this.fwdPressed, this.bkdPressed, this.rgtPressed, this.lftPressed;
 
@@ -79,8 +85,8 @@ export class collisionTest{
 		this.world.addEventListener('postStep', this.stepFunc);
 
 		this.planetBody?.addEventListener('collide', (event: any) => {
-			console.log('Collision detected with:', event.body);
-			console.log('Contact normal:', event.contact);
+			// console.log('Collision detected with:', event.body);
+			// console.log('Contact normal:', event.contact);
 		});
 
 		this.yawObject = new THREE.Object3D();
@@ -215,7 +221,6 @@ export class collisionTest{
 		if(this.cannonDebugRenderer){
 			this.cannonDebugRenderer?.update()
 		}
-
 	}
 	
 	spawnPos(p: THREE.Vector3) {
@@ -289,25 +294,23 @@ export class collisionTest{
 	}  
 
 	disposeAll() {
-    if (this.collider) {
-        this.scene.remove(this.collider);
-        if (this.collider.geometry) this.collider.geometry.dispose();
-        if (this.collider.material && 'dispose' in this.collider.material) {
-            (this.collider.material as THREE.Material).dispose();
-        }
-        this.collider = null;
-    }
-
-    if (this.planetBody && this.world && this.sphereBody) {
-        this.world.removeBody(this.planetBody);
-		this.world.removeBody(this.sphereBody);
-        this.planetBody = null;
-		this.sphereBody = null;
-    }
-
-    if (this.sphere ) {
-        this.scene.remove(this.sphere);
-		this.planet = null;
-    }
-}
+		if (this.collider) {
+			this.scene.remove(this.collider);
+			if (this.collider.geometry) this.collider.geometry.dispose();
+			if (this.collider.material && 'dispose' in this.collider.material) {
+				(this.collider.material as THREE.Material).dispose();
+			}
+			this.collider = null;
+		}
+		if (this.planetBody && this.world && this.sphereBody) {
+			this.world.removeBody(this.planetBody);
+			this.world.removeBody(this.sphereBody);
+			this.planetBody = null;
+			this.sphereBody = null;
+		}
+		if (this.sphere ) {
+			this.scene.remove(this.sphere);
+			this.planet = null;
+		}
+	}
 }
