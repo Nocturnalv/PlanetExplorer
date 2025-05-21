@@ -3,6 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Planet } from "./planet";
 import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
+import { stars } from "./stars.ts";
+
 
 
 // I’m sure there’s a better name for this
@@ -15,6 +17,7 @@ class Global {
     #testScene: collisionTest
     #debugLightSphere: THREE.Mesh
     #settings: Settings
+    #stars: stars
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -37,10 +40,11 @@ class Global {
         document.body.appendChild(this.#renderer.domElement);
         this.#scene = new THREE.Scene();
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.#camera.position.set(10, 10, 10)
-        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
-        this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+       this.#camera.position.set(10, 10, 10)
+       this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+       this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
+        this.#stars = new stars(this.#scene);
 
         this.#settings = new Settings();
         this.#settings.Pane.addButton({
@@ -50,7 +54,8 @@ class Global {
         this.GenerateNewPlanet()
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
-        this.#testScene = new collisionTest(this.#scene);
+        this.#testScene = new collisionTest(this.#scene, this.#activePlanet, this.#camera);
+        this.#stars.generateStars();
     }
 
     Tick() {
