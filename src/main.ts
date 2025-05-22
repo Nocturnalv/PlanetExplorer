@@ -4,7 +4,7 @@ import { Planet } from "./planet";
 import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
 import { stars } from "./stars.ts";
-import { loadTardis, updateTardis} from './tardis.ts';
+import { disposeTardis, loadTardis, updateTardis } from './tardis.ts';
 
 // I’m sure there’s a better name for this
 class Global {
@@ -16,10 +16,10 @@ class Global {
     #testScene: collisionTest
     #settings: Settings
     #stars: stars
+    #tardis
     #listener: THREE.AudioListener | null = null
     #debugLightSphere: THREE.Mesh
-    #mouse: THREE.Vector2 = new THREE.Vector2(0,0);
-    
+    #mouse: THREE.Vector2 = new THREE.Vector2(0, 0);
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -31,7 +31,7 @@ class Global {
                 this.ActivePlanet.Mesh?.material.forEach(mat => mat.dispose())
             else
                 this.ActivePlanet.Mesh?.material.dispose()
-                this.#scene.remove(this.ActivePlanet.Mesh!)
+            this.#scene.remove(this.ActivePlanet.Mesh!)
         }
         if (this.#testScene != null) {
             this.#testScene.disposeAll();
@@ -46,6 +46,7 @@ class Global {
         this.#testScene = new collisionTest(this.#scene, this.#activePlanet, this.#camera);
         this.#stars = new stars(this.#scene);
         this.#stars.generateStars();
+        disposeTardis(this.#scene)
         loadTardis(this.#scene, this.#settings, this.#listener, this.#activePlanet);
     }
 
@@ -58,7 +59,7 @@ class Global {
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.#camera.position.set(10, 10, 10)
         this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
-        this.#camera.add(this.#listener); 
+        this.#camera.add(this.#listener);
         this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
         this.#settings = new Settings();
@@ -76,10 +77,10 @@ class Global {
         //adds sound to the debug light
         this.#settings.LightSound = new THREE.PositionalAudio(this.#listener);
         const audioLoader = new THREE.AudioLoader()
-        audioLoader.load( 'sound/ambientSun.ogg', (buffer) => {
-            this.#settings.LightSound?.setBuffer( buffer );
-            this.#settings.LightSound?.setLoop( true );
-            this.#settings.LightSound?.setVolume( 0.25 );
+        audioLoader.load('sound/ambientSun.ogg', (buffer) => {
+            this.#settings.LightSound?.setBuffer(buffer);
+            this.#settings.LightSound?.setLoop(true);
+            this.#settings.LightSound?.setVolume(0.25);
             this.#settings.LightSound?.setRolloffFactor(2.5);
         });
 
@@ -87,7 +88,7 @@ class Global {
 
         this.mouseMove = this.mouseMove.bind(this);
         this.mouseClick = this.mouseClick.bind(this);
-		document.addEventListener('mousemove', this.mouseMove);
+        document.addEventListener('mousemove', this.mouseMove);
         document.addEventListener('click', this.mouseClick);
 
     }
@@ -101,7 +102,7 @@ class Global {
         shader.uniforms.u_cameraPos.value = this.#camera.position;
         this.#testScene.update();
 
-      
+
     }
 
     mouseMove(event: MouseEvent) {
@@ -113,8 +114,8 @@ class Global {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(this.#mouse, this.#camera);
         const intersects = raycaster.intersectObjects(this.#scene.children, true);
-        
-        if (intersects.length > 0 && intersects[0].object.name === "Glass_Box"){
+
+        if (intersects.length > 0 && intersects[0].object.name === "Glass_Box") {
             console.log("tardistime");
             this.GenerateNewPlanet()
         }
