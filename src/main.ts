@@ -143,10 +143,16 @@ class Global {
             this.GenerateNewPlanet();
         }
 
-        if (clickedObject.name === "MELON") {
-            console.log("melontotime");
+    let object = clickedObject;
+    while (object) {
+        if (object.name === "MELON") {
+            console.log("melontime");
             disposeMelon(this.#scene);
+            break;
+            }
+        object = object.parent;
         }
+
     }
 }
 }
