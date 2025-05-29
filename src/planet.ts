@@ -15,6 +15,7 @@ export class Planet {
 
     get Settings() { return this.#settings }
     get Mesh() { return this.#sphere }
+    getPosition(): THREE.Vector3 {return this.#sphere?.position.clone() ?? new THREE.Vector3(0, 0, 0);}
 
     UpdateMesh() {
         this.UpdateUniforms()
@@ -99,10 +100,30 @@ export class Planet {
         this.RegenerateMesh()
     }
 
+    //Generates Audio, can be changed
+
+    GenerateAudio(listener : THREE.AudioListener): void {
+        const audioLoader = new THREE.AudioLoader()
+        this.#settings.PlanetSound = new THREE.PositionalAudio(listener)
+        audioLoader.load( 'sound/ambientPlanet.ogg', (buffer) => {
+            this.#settings.PlanetSound?.setBuffer( buffer );
+            this.#settings.PlanetSound?.setLoop( true );
+            this.#settings.PlanetSound?.setVolume( 1 );
+            this.#settings.PlanetSound?.setRolloffFactor(3);
+            this.#settings.PlanetSound?.setRefDistance(this.Settings.Radius);
+        });
+
+        this.#sphere?.add(this.#settings.PlanetSound);
+    }
+
+    //Updates the sound refDistance with the planet Radius
+
+
     UpdateUniforms(): void {
         if (this.#sphere === null) return;
         let shader: THREE.ShaderMaterial = this.#sphere.material as THREE.ShaderMaterial;
         shader.uniforms.u_radius.value = this.Settings.Radius;
+        this.#settings.PlanetSound?.setRefDistance(this.Settings.Radius);
         shader.uniforms.u_flatAColor.value = this.Settings.FlatAColor;
         shader.uniforms.u_flatBColor.value = this.Settings.FlatBColor;
         shader.uniforms.u_steepAColor.value = this.Settings.SteepAColor;
@@ -122,12 +143,13 @@ export class Planet {
         this.RegenerateMesh()
     }
 
-    constructor(settings: Settings, scene: THREE.Scene) {
+    constructor(settings: Settings, scene: THREE.Scene, listener: THREE.AudioListener) {
         this.#settings = settings
         this.#scene = scene
         this.Settings.SetupPlanetListeners(this)
         this.GenerateOctaves()
         this.GenerateMesh()
         this.UpdateMesh()
+        this.GenerateAudio(listener);
     }
 }

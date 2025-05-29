@@ -7,7 +7,7 @@ export class stars{
 	scene: THREE.Scene;
 	starCount: number = 300; // add this to params somehow?
 	moonCount: number = 50; // add this to params somehow?
-
+	stars: THREE.Mesh[] = [];
 
 	constructor(scene : THREE.Scene) {
 		this.scene = scene;
@@ -53,6 +53,7 @@ export class stars{
 		const star = new THREE.Mesh(starGeometry, starMaterial);
 		star.position.set(x, y, z);
 		this.scene.add(star);
+		this.stars.push(star);
 	}
 
 	generateMoon(x : number, y: number, z: number, moonSize: number){
@@ -66,4 +67,15 @@ export class stars{
 		moon.position.set(x, y, z);
 		this.scene.add(moon);
 	}
+
+	disposeStars() {
+        for (const star of this.stars) {
+            this.scene.remove(star);
+            if (star.geometry) star.geometry.dispose();
+            if (star.material) {
+                (star.material as THREE.Material).dispose();
+            }
+        }
+        this.stars = [];
+    }
 }

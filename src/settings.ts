@@ -21,9 +21,15 @@ export class Settings {
     CameraPos: THREE.Vector3 = new THREE.Vector3()
     LightPos: THREE.Vector3 = new THREE.Vector3(15.0, 0.0, 0.0)
     LightColor: THREE.Color = new THREE.Color()
+    LightSound: THREE.PositionalAudio | null = null;
     PlanetEmissivity: THREE.Color = new THREE.Color(0x000000)
     PlanetRoughness: number = 0.65
     PlanetReflectance: THREE.Color = new THREE.Color()
+    PlanetSound: THREE.PositionalAudio | null = null;
+    TardisPosition: THREE.Vector3 = new THREE.Vector3(7, 0, 0);
+    TardisSound: THREE.PositionalAudio | null = null;
+    MelonPosition: THREE.Vector3 = new THREE.Vector3(10, 0, 3);
+    SoundOn: boolean = false
 
     WidthSegments = 256
     HeightSegments = 256
@@ -58,7 +64,26 @@ export class Settings {
         rendering.addBinding(this, "PlanetEmissivity", { color: { type: "float" }, label: "Planet Emissivity" })
         rendering.addBinding(this, "PlanetRoughness", { min: 0.0, max: 1.0, step: 0.01, label: "Planet Roughness" })
         rendering.addBinding(this, "PlanetReflectance", { color: { type: "float" }, label: "Planet Reflectance" })
-        this.PlanetBindings = [radius, planetCols, planetNoise, rendering]
+        rendering.addBinding(this, "TardisPosition", { label: "TARDIS Position" });
+        rendering.addBinding(this, "MelonPosition", { label: "Melon Position" });
+        let sound: FolderApi = this.Pane.addFolder({ title: "Sound" }).on("change", planet.UpdateUniforms.bind(planet))
+        let soundButton = sound.addButton({title:"Toggle Sound"});
+        this.PlanetBindings = [radius, planetCols, planetNoise, rendering, sound]
+
+        //Set up "Play Sound" button
+        soundButton.on("click", ()=>{
+            if (this.SoundOn) {
+                this.LightSound?.pause();
+                this.PlanetSound?.pause();
+                this.TardisSound?.pause();    
+                this.SoundOn = false;            
+            } else {
+                this.LightSound?.play();
+                this.PlanetSound?.play();
+                this.TardisSound?.play();
+                this.SoundOn = true;            
+            }
+        })
     }
 
     Randomise(seed: number) {
