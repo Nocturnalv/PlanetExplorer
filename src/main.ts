@@ -117,7 +117,6 @@ class Global {
         this.#debugLightSphere.position.set(lightPos.x, lightPos.y, lightPos.z);
         this.#testScene.update();
 
-        // Only trigger once per key press
         if (this.#helper.isePressed && !this.#wasEPressed) {
             console.log('E key pressed — spawning cloud.');
             spawnCloud(this.#scene);
