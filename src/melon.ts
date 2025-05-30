@@ -20,7 +20,7 @@ export function loadMelon(scene: THREE.Scene, settings: Settings, planet: Planet
     '/spacemelon.gltf',
     (gltf) => {
       melonModel = gltf.scene;
-      melonModel.scale.set(0.5, Math.random() * 1, Math.random() * 1);
+      melonModel.scale.set(0.5, Math.random() * (1 - 0.2) + 0.2, Math.random() * (1 - 0.2) + 0.2);
       if (settingsRef && settingsRef.Radius) {
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.acos(2 * Math.random() - 1);
