@@ -6,6 +6,7 @@ import { collisionTest } from "./collisionTest.ts";
 import { stars } from "./stars.ts";
 import { disposeTardis, loadTardis, updateTardis } from './tardis.ts';
 import { disposeMelon, loadMelon, spawnCloud, disposeClouds, melonModel } from './melon.ts';
+import { createWormhole, updateWormhole } from './vortex';
 import { Helper } from './helper';
 
 class Global {
@@ -23,6 +24,7 @@ class Global {
     #mouse: THREE.Vector2 = new THREE.Vector2(0, 0);
     #helper: Helper;
     #wasEPressed: boolean = false;
+    #wormhole: THREE.Mesh;
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -71,6 +73,8 @@ class Global {
         this.#settings = new Settings();
         this.#helper = new Helper();
         this.#helper.listener();
+        this.#wormhole = createWormhole();
+        this.#scene.add(this.#wormhole);
 
         this.#settings.Pane.addButton({
             title: "Generate",
@@ -108,6 +112,8 @@ class Global {
     Tick() {
         this.#controls.update();
         this.#renderer.render(this.#scene, this.#camera);
+        
+        updateWormhole(this.#wormhole, performance.now() * 0.001);
 
         updateTardis();
 
@@ -151,7 +157,6 @@ class Global {
             }
         object = object.parent;
         }
-
     }
 }
 }
