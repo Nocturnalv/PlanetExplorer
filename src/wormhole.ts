@@ -15,14 +15,14 @@ export function createWormhole(): THREE.Mesh {
             u_time: { value: 0 },
         },
         vertexShader: `
-            varying vec2 vUv;
+            varying vec2 wrap;
             void main() {
-                vUv = uv;
+                wrap = uv;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         `,
         fragmentShader: `
-            varying vec2 vUv;
+            varying vec2 wrap;
             uniform float u_time;
 
             vec3 hsv2rgb(vec3 c) {
@@ -40,7 +40,7 @@ export function createWormhole(): THREE.Mesh {
 
                 vec3 colorStart = hsv2rgb(vec3(hueStart, saturation, value));
                 vec3 colorEnd = hsv2rgb(vec3(hueEnd, saturation, value));
-                vec3 gradientColor = mix(colorStart, colorEnd, vUv.y);
+                vec3 gradientColor = mix(colorStart, colorEnd, wrap.y);
 
                 gl_FragColor = vec4(gradientColor, 1.0);
             }
@@ -53,7 +53,13 @@ export function createWormhole(): THREE.Mesh {
     return mesh;
 }
 
-export function updateWormhole(wormhole: THREE.Mesh, time: number) {
+export function updateWormhole(wormhole: THREE.Mesh, time: number, generateNewCount: number) {
     if (!wormholeMaterial) return;
+
     wormholeMaterial.uniforms.u_time.value = time;
+
+    const maxScale = 1.0;
+    const growthFactor = 0.1;
+    const scale = Math.min(generateNewCount * growthFactor, maxScale);
+    wormhole.scale.set(scale, scale, scale);
 }

@@ -25,11 +25,13 @@ class Global {
     #helper: Helper;
     #wasEPressed: boolean = false;
     #wormhole: THREE.Mesh;
+    #generateNewCount: number = 0;
 
     get ActivePlanet() { return this.#activePlanet }
 
     GenerateNewPlanet() {
         this.#settings.Randomise(Math.random() * 100)
+        this.#generateNewCount++;
         if (this.ActivePlanet != null) {
             this.ActivePlanet.Mesh?.geometry.dispose()
             if (this.ActivePlanet.Mesh?.material instanceof Array)
@@ -56,6 +58,11 @@ class Global {
         disposeMelon(this.#scene)
         loadMelon(this.#scene, this.#settings);
         disposeClouds(this.#scene); 
+
+        const maxWormhole = 1.0;
+        const growth = 0.1;
+        const scale = Math.min(this.#generateNewCount * growth, maxWormhole);
+        this.#wormhole.scale.set(scale, scale, scale);
     }
 
     constructor() {
@@ -74,6 +81,7 @@ class Global {
         this.#helper = new Helper();
         this.#helper.listener();
         this.#wormhole = createWormhole();
+        this.#wormhole.scale.set(1, 1, 1);
         this.#scene.add(this.#wormhole);
 
         this.#settings.Pane.addButton({
@@ -113,7 +121,7 @@ class Global {
         this.#controls.update();
         this.#renderer.render(this.#scene, this.#camera);
         
-        updateWormhole(this.#wormhole, performance.now() * 0.001);
+        updateWormhole(this.#wormhole, performance.now() * 0.001, this.#generateNewCount);
 
         updateTardis();
 
