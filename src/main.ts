@@ -6,7 +6,7 @@ import { collisionTest } from "./collisionTest.ts";
 import { stars } from "./stars.ts";
 import { disposeTardis, loadTardis, updateTardis } from './tardis.ts';
 import { disposeMelon, loadMelon, spawnCloud, disposeClouds, melonModel } from './melon.ts';
-import { createWormhole, updateWormhole } from './vortex';
+import { createWormhole, updateWormhole } from './wormhole.ts';
 import { Helper } from './helper';
 
 class Global {
