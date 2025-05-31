@@ -4,9 +4,9 @@ import { Planet } from "./planet";
 import { Settings } from "./settings"
 import { collisionTest } from "./collisionTest.ts";
 import { stars } from "./stars.ts";
-import { disposeTardis, loadTardis, updateTardis } from './tardis.ts';
-import { disposeMelon, loadMelon, spawnCloud, disposeClouds, melonModel } from './melon.ts';
-import { createWormhole, updateWormhole } from './wormhole.ts';
+import { loadTardis, disposeTardis, updateTardis } from './tardis.ts';
+import { loadMelon, disposeMelon, spawnCloud, disposeClouds, melonModel } from './melon.ts';
+import { loadWormhole, updateWormhole, loadLightning, updateLightning } from './wormhole.ts';
 import { Helper } from './helper';
 
 class Global {
@@ -26,6 +26,7 @@ class Global {
     #wasEPressed: boolean = false;
     #wormhole: THREE.Mesh;
     #generateNewCount: number = 0;
+    #melonEatSound: THREE.Audio | null = null;
 
     get ActivePlanet() { return this.#activePlanet }
 
@@ -63,6 +64,10 @@ class Global {
         const growth = 0.1;
         const scale = Math.min(this.#generateNewCount * growth, maxWormhole);
         this.#wormhole.scale.set(scale, scale, scale);
+
+        const lightningBranch = loadLightning(new THREE.Vector3(0, 0, -80));
+        lightningBranch.name = "LightningShoot";
+        this.#scene.add(lightningBranch);
     }
 
     constructor() {
@@ -80,7 +85,7 @@ class Global {
         this.#settings = new Settings();
         this.#helper = new Helper();
         this.#helper.listener();
-        this.#wormhole = createWormhole();
+        this.#wormhole = loadWormhole();
         this.#wormhole.scale.set(1, 1, 1);
         this.#scene.add(this.#wormhole);
 
@@ -109,8 +114,14 @@ class Global {
             this.#settings.LightSound?.setVolume(0.25);
             this.#settings.LightSound?.setRolloffFactor(2.5);
         });
+        const eatSoundLoader = new THREE.AudioLoader();
+        this.#melonEatSound = new THREE.Audio(this.#listener);
+        eatSoundLoader.load('sound/eatingEffect.ogg', (buffer) => {
+            this.#melonEatSound!.setBuffer(buffer);
+            this.#melonEatSound!.setVolume(0.35); // adjust as needed
+        });
         this.#debugLightSphere.add(this.#settings.LightSound);
-
+        
         this.mouseMove = this.mouseMove.bind(this);
         this.mouseClick = this.mouseClick.bind(this);
         document.addEventListener('mousemove', this.mouseMove);
@@ -120,8 +131,6 @@ class Global {
     Tick() {
         this.#controls.update();
         this.#renderer.render(this.#scene, this.#camera);
-        
-        updateWormhole(this.#wormhole, performance.now() * 0.001, this.#generateNewCount);
 
         updateTardis();
 
@@ -136,6 +145,9 @@ class Global {
             spawnCloud(this.#scene);
         }
         this.#wasEPressed = this.#helper.isePressed;
+
+        updateWormhole(this.#wormhole, performance.now() * 0.001, this.#generateNewCount);
+        updateLightning(performance.now() * 0.001);
     }
 
     mouseMove(event: MouseEvent) {
@@ -160,6 +172,9 @@ class Global {
     while (object) {
         if (object.name === "MELON") {
             console.log("melontime");
+            if (this.#melonEatSound && this.#melonEatSound.buffer) {
+                this.#melonEatSound.play();
+            }
             disposeMelon(this.#scene);
             break;
             }
