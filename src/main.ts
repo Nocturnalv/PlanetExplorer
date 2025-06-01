@@ -90,10 +90,10 @@ class Global {
         this.#scene = new THREE.Scene();
         this.#listener = new THREE.AudioListener();
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
-        this.#camera.position.set(10, 10, 10)
-        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+        // this.#camera.position.set(10, 10, 10)
+        // this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
         this.#camera.add(this.#listener);
-        this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+        //this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
         this.#settings = new Settings();
         this.#helper = new Helper();
@@ -101,10 +101,11 @@ class Global {
         this.#wormhole = loadWormhole();
         this.#wormhole.scale.set(1, 1, 1);
         this.#scene.add(this.#wormhole);
-        this.#settings.Pane.addButton({
-            title: "Generate",
-            label: "New Planet"
-        }).on("click", this.GenerateNewPlanet.bind(this))
+        // this.#settings.Pane.addButton({
+        //     title: "Generate",
+        //     label: "New Planet"
+        // }).on("click", this.GenerateNewPlanet.bind(this))
+        this.#settings.Pane.hidden = true;
         this.GenerateNewPlanet()
         let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
@@ -126,12 +127,12 @@ class Global {
     Tick() {
         this.sky?.tick(this.#camera, this.#settings, this.#renderer, this.#activePlanet);
         this.#sun?.Tick();
-        this.#controls.update()
+        //this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
         updateTardis();
         // Update camera pos…  this had sure better be temporary
-        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
-        shader.uniforms.u_cameraPos.value = this.#camera.position;
+        // let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        // shader.uniforms.u_cameraPos.value = this.#camera.position;
         this.#testScene.update();
 
         // Only trigger once per key press
