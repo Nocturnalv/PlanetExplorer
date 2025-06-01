@@ -56,18 +56,19 @@ class Global {
         this.#scene = new THREE.Scene();
         this.#listener = new THREE.AudioListener();
         this.#camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.#camera.position.set(10, 10, 10)
-        this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
+        // this.#camera.position.set(10, 10, 10)
+        // this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
         this.#camera.add(this.#listener); 
         this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
         this.#settings = new Settings();
-        this.#settings.Pane.addButton({
-            title: "Generate",
-            label: "New Planet"
-        }).on("click", this.GenerateNewPlanet.bind(this))
-        this.GenerateNewPlanet()
-        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        // this.#settings.Pane.addButton({
+        //     title: "Generate",
+        //     label: "New Planet"
+        // }).on("click", this.GenerateNewPlanet.bind(this))
+        this.#settings.Pane.hidden = true;
+        this.GenerateNewPlanet();
+        let shader: THREE.ShaderMaterial = this.activePlanet.Mesh!.material as THREE.ShaderMaterial;
         shader.uniforms.u_cameraPos.value = this.#camera.position;
 
         this.#debugLightSphere = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({ color: 0xffaa00, opacity: 0, transparent: true }))
@@ -93,12 +94,12 @@ class Global {
     }
 
     Tick() {
-        this.#controls.update()
+        //this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
         updateTardis();
         // Update camera pos…  this had sure better be temporary
-        let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
-        shader.uniforms.u_cameraPos.value = this.#camera.position;
+        // let shader: THREE.ShaderMaterial = this.ActivePlanet.Mesh!.material as THREE.ShaderMaterial;
+        // shader.uniforms.u_cameraPos.value = this.#camera.position;
         this.#testScene.update();
 
       
@@ -115,7 +116,6 @@ class Global {
         const intersects = raycaster.intersectObjects(this.#scene.children, true);
         
         if (intersects.length > 0 && intersects[0].object.name === "Glass_Box"){
-            console.log("tardistime");
             this.GenerateNewPlanet()
         }
     }
