@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { Planet } from "./planet";
-import { Settings } from "./settings";
 import * as CANNON from 'cannon-es';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import CannonDebugRenderer from "./debugCollision/cannonDebugRenderer";
@@ -12,16 +11,11 @@ export class collisionTest{
 	clock: THREE.Clock;
 	sphere: THREE.Mesh;
 	planet: Planet | null = null;
+
+	//Physics
 	sphereBody: CANNON.Body | null = null;
 	planetBody: CANNON.Body | null = null;
 	world: CANNON.World | null = null;
-	pitchObject: THREE.Object3D | null = null;
-	yawObject: THREE.Object3D | null = null;
-	textGeo: TextGeometry | null = null;
-
-	//camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-	camera: THREE.PerspectiveCamera;
-
 	groundMaterial: CANNON.Material | null = null;
 	playerMaterial: CANNON.Material | null = null;
 
@@ -31,13 +25,15 @@ export class collisionTest{
 	rgtPressed: boolean | null = null;
 	lftPressed: boolean | null = null;
 	mouse: THREE.Vector2 = new THREE.Vector2(0,0);
+	yawObject: THREE.Object3D | null = null;
+	camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 	// Debug
 	cannonDebugRenderer: CannonDebugRenderer | null = null;
 	arrowHelper: THREE.ArrowHelper | null = null;
 	collider: THREE.Mesh | null = null;
 
-	//get cameraFunc() { return this.camera; }
+	get cameraFunc() { return this.camera; }
 
 	loader: FontLoader = new FontLoader();
 
@@ -65,16 +61,12 @@ export class collisionTest{
 
 		this.planetBody = this.generatePlanetCollider(this.groundMaterial);
 		this.world.addBody(this.planetBody);
-
-		// this.collider = this.generatePlanetColliderDebug();
-		// this.scene.add(this.collider);
-
 		this.sphere = this.createSphere();
 		this.scene.add(this.sphere);
 
-		this.sphereBody = this.createSphereBody(this.playerMaterial);
+		this.sphereBody = this.createSphereCollider(this.playerMaterial);
 		this.world.addBody(this.sphereBody);
-
+		
 		this.keyDownFunc = this.keyDownFunc.bind(this);
 		this.keyUpFunc = this.keyUpFunc.bind(this);
 		this.stepFunc = this.stepFunc.bind(this);
@@ -83,17 +75,14 @@ export class collisionTest{
 		window.addEventListener('keyup', this.keyUpFunc);
 		document.addEventListener('mousemove', this.mouseMoveFunc);
 		this.world.addEventListener('postStep', this.stepFunc);
-
-		this.planetBody?.addEventListener('collide', (event: any) => {
-			// console.log('Collision detected with:', event.body);
-			// console.log('Contact normal:', event.contact);
-		});
-
 		this.yawObject = new THREE.Object3D();
 
-		//this.cannonDebugRenderer = new CannonDebugRenderer(this.scene, this.world)
+		// this.collider = this.generatePlanetColliderDebug();
+		// this.scene.add(this.collider);
+		// this.cannonDebugRenderer = new CannonDebugRenderer(this.scene, this.world)
 	}
 
+	// Gen cannon es collider for the planet 
 	generatePlanetCollider(material: CANNON.Material){
 		if (this.planet && this.planet.Mesh) {
 
@@ -119,6 +108,7 @@ export class collisionTest{
 		return new CANNON.Body();
 	}
 
+	// debug func, visible collider mesh
 	generatePlanetColliderDebug(){
 		const colliderMaterial = new THREE.MeshBasicMaterial({
 			wireframe: true,
@@ -137,6 +127,7 @@ export class collisionTest{
 		return collider;
 	}
 		
+	//Creates three.js sphere for the player representation
 	createSphere() {
 		const sphere = new THREE.Mesh(
 			new THREE.SphereGeometry( 0.5, 20, 20 ),
@@ -151,7 +142,8 @@ export class collisionTest{
 		return sphere
 	}
 
-	createSphereBody(material: CANNON.Material){
+	// Creates cannon body for sphere
+	createSphereCollider(material: CANNON.Material){
 		const sphereBody = new CANNON.Body({
 			mass: 1,
 			shape: new CANNON.Sphere(0.5),
@@ -165,41 +157,37 @@ export class collisionTest{
 		return sphereBody;
 	}
 	
+	// Movement for sphere
+	// Has 2 vectors facing front and side, uses keyboard to apply the vectors to the sphere's velcoity
+	// Also sets the sphere's quaternion to match the camera's rotation
+	// Also makes sure the sphere is always perpendicular to  planet's surface
 	movementFunc(){
 		if (this.sphereBody && this.yawObject){
 			this.sphereBody.quaternion.setFromVectors(new CANNON.Vec3(0,1,0), this.sphereBody.position.clone());
+			
+			const facingVec = new THREE.Vector3(0,0,1).applyEuler( this.sphere.rotation );
+			const sideingVec = new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation );
 
-			let facingVec = new THREE.Vector3(0,0,1).applyEuler( this.sphere.rotation );
-			let sideingVec = new THREE.Vector3(1,0,0).applyEuler( this.sphere.rotation );
-			let upVec = new THREE.Vector3(0,1,0).applyEuler( this.sphere.rotation );
-
-			const gravityUpThree = this.sphere.position.clone().negate().multiplyScalar(-1).normalize(); // from sphere to planet center
-			const upThree = new THREE.Vector3(0,1,0);
-		
-			const threeQuat = new THREE.Quaternion().setFromUnitVectors(upThree, gravityUpThree);
-		
+			const gravityUpThree = this.sphere.position.clone().negate().multiplyScalar(-1).normalize(); // sphere to planet center
+			const threeQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), gravityUpThree);
 			const yaw = new THREE.Quaternion().setFromAxisAngle(
 				new THREE.Vector3(gravityUpThree.x, gravityUpThree.y, gravityUpThree.z), 
 				this.yawObject.rotation.y
 			);
-		
 			threeQuat.premultiply(yaw);
-		
+			
 			this.sphereBody.quaternion.set(threeQuat.x, threeQuat.y, threeQuat.z, threeQuat.w);
+			this.camera.quaternion.copy(threeQuat);
+			this.camera.position.copy(this.sphereBody.position);
 
-			const v = new CANNON.Vec3();
+			const move = new CANNON.Vec3();
 
-			this.fwdPressed? v.vadd(new CANNON.Vec3(-facingVec.x, -facingVec.y, -facingVec.z), v) : null;
-			this.bkdPressed? v.vadd(new CANNON.Vec3(facingVec.x, facingVec.y, facingVec.z), v): null;
-			this.rgtPressed? v.vadd(new CANNON.Vec3(sideingVec.x, sideingVec.y, sideingVec.z), v): null;
-			this.lftPressed? v.vadd(new CANNON.Vec3(-sideingVec.x, -sideingVec.y, -sideingVec.z), v): null;
+			this.fwdPressed? move.vadd(new CANNON.Vec3(-facingVec.x, -facingVec.y, -facingVec.z), move) : null;
+			this.bkdPressed? move.vadd(new CANNON.Vec3(facingVec.x, facingVec.y, facingVec.z), move): null;
+			this.rgtPressed? move.vadd(new CANNON.Vec3(sideingVec.x, sideingVec.y, sideingVec.z), move): null;
+			this.lftPressed? move.vadd(new CANNON.Vec3(-sideingVec.x, -sideingVec.y, -sideingVec.z), move): null;
 
-			// if (this.spacePressed){
-			// 	v.vadd(new CANNON.Vec3(upVec.x, upVec.y, upVec.z), v);
-			// 	v.scale(2,v);
-			// } else{ null;} // jumping messes up collision so no jumping
-
-			return v;
+			return move;
 		}
 		return new CANNON.Vec3(0,0,0);
 	} 
@@ -223,10 +211,10 @@ export class collisionTest{
 		}
 	}
 	
+	// Figure out where the player sphere needs to spawn based on planet
 	spawnPos(p: THREE.Vector3) {
         const raycaster = new THREE.Raycaster()
         const outside = p.clone();
-	
         const inside = new THREE.Vector3().subVectors(new THREE.Vector3(), outside).normalize()
 			
         raycaster.set(outside, inside);
@@ -240,6 +228,17 @@ export class collisionTest{
         return pos
     }
 
+	// Update gravity towards the centre (0,0,0) for the sphere
+	stepFunc(){
+		const grav = new CANNON.Vec3();
+		if (this.sphereBody){
+			grav.set( -this.sphereBody?.position.x, -this.sphereBody.position.y, -this.sphereBody.position.z ).normalize();
+			grav.scale(98, this.sphereBody.force);
+			this.sphereBody.applyLocalForce(grav, this.sphereBody.position);
+		}
+	}
+
+	// Handle user inputs (WASD and horizontal mouse movement)
     keyDownFunc(e : KeyboardEvent){
         switch ( e.code ) {
 			case 'KeyW': this.fwdPressed = true; break;
@@ -258,15 +257,6 @@ export class collisionTest{
         }
     }
 
-	stepFunc(){
-		const v = new CANNON.Vec3();
-		if (this.sphereBody){
-			v.set( -this.sphereBody?.position.x, -this.sphereBody.position.y, -this.sphereBody.position.z ).normalize();
-			v.scale(98, this.sphereBody.force);
-			this.sphereBody.applyLocalForce(v, this.sphereBody.position);
-		}
-	}
-
 	mouseMoveFunc(e : any){
 		this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
 		this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -276,39 +266,32 @@ export class collisionTest{
 		}
 	}
 
+	// Take three.js geo verticies and indicies and make a cannon-es trimesh
 	createTrimesh(geometry: THREE.BufferGeometry): CANNON.Trimesh {
 		const geo = BufferGeometryUtils.mergeVertices(geometry.clone());
+		const vertices = [];
+		const indices = [];
 		if (!geo.index) {
 			throw new Error("");
 		}
-
-		const vertices = [];
 		for (let i = 0; i < geo.attributes.position.count; i++) {
 			vertices.push(geo.attributes.position.getX(i), geo.attributes.position.getY(i), geo.attributes.position.getZ(i));
 		}
-		const indices = [];
 		for (let i = 0; i < geo.index.count; i++) {
-			indices.push(geo.index.getX(i));
+			indices.push(geo.index.getX(i), geo.index.getY(i), geo.index.getZ(i));
 		}
 		return new CANNON.Trimesh(vertices, indices);
 	}  
 
+	// Get rid of everything in the scene (Three and cannon) so they can be regenerated for a new planet
 	disposeAll() {
-		if (this.collider) {
-			this.scene.remove(this.collider);
-			if (this.collider.geometry) this.collider.geometry.dispose();
-			if (this.collider.material && 'dispose' in this.collider.material) {
-				(this.collider.material as THREE.Material).dispose();
-			}
-			this.collider = null;
-		}
 		if (this.planetBody && this.world && this.sphereBody) {
 			this.world.removeBody(this.planetBody);
 			this.world.removeBody(this.sphereBody);
 			this.planetBody = null;
 			this.sphereBody = null;
 		}
-		if (this.sphere ) {
+		if (this.sphere) {
 			this.scene.remove(this.sphere);
 			this.planet = null;
 		}

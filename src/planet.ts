@@ -12,6 +12,7 @@ export class Planet {
     #scene: THREE.Scene
     #noises: SimplexNoise[] = []
     #noiseOffsets: THREE.Vector3[] = []
+    #clock = new THREE.Clock();
 
     get Settings() { return this.#settings }
     get Mesh() { return this.#sphere }
@@ -84,8 +85,8 @@ export class Planet {
                 u_useColorBanding: { value: this.Settings.UseColorBanding },
                 u_numberColorBands: { value: this.Settings.NumberColorBands },
                 u_cameraPos: { value: this.Settings.CameraPos },
-                u_lightPos: { value: this.Settings.LightPos },
-                u_lightColor: { value: this.Settings.LightColor },
+                u_lightPos: { value: this.Settings.SunPosition },
+                u_lightColor: { value: this.Settings.SunColor },
                 u_emissivity: { value: this.Settings.PlanetEmissivity },
                 u_roughness: { value: this.Settings.PlanetRoughness },
                 u_baseReflectance: { value: this.Settings.PlanetReflectance },
@@ -95,6 +96,7 @@ export class Planet {
         geometry.computeVertexNormals()
         geometry.computeTangents()
         this.#sphere = new THREE.Mesh(geometry, material)
+        this.#sphere.receiveShadow = true;
         this.#scene.add(this.#sphere)
         this.#scene.add(new THREE.AxesHelper())
         this.RegenerateMesh()
@@ -135,7 +137,7 @@ export class Planet {
         shader.uniforms.u_useColorBanding.value = this.Settings.UseColorBanding;
         shader.uniforms.u_numberColorBands.value = this.Settings.NumberColorBands;
         shader.uniforms.u_cameraPos.value = this.Settings.CameraPos
-        shader.uniforms.u_lightPos.value = this.Settings.LightPos
+        shader.uniforms.u_lightPos.value = this.Settings.SunPosition
         shader.uniforms.u_lightColor.value = this.Settings.LightColor
         shader.uniforms.u_emissivity.value = this.Settings.PlanetEmissivity
         shader.uniforms.u_roughness.value = this.Settings.PlanetRoughness
