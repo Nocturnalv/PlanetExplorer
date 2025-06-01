@@ -116,9 +116,9 @@ class Global {
         });
         const eatSoundLoader = new THREE.AudioLoader();
         this.#melonEatSound = new THREE.Audio(this.#listener);
-        eatSoundLoader.load('sound/eatingEffect.ogg', (buffer) => {
+        eatSoundLoader.load('sound/eatingMelon.ogg', (buffer) => {
             this.#melonEatSound!.setBuffer(buffer);
-            this.#melonEatSound!.setVolume(0.35); // adjust as needed
+            this.#melonEatSound!.setVolume(0.35);
         });
         this.#debugLightSphere.add(this.#settings.LightSound);
         
@@ -169,18 +169,18 @@ class Global {
         }
 
     let object = clickedObject;
-    while (object) {
-        if (object.name === "MELON") {
-            console.log("melontime");
-            if (this.#melonEatSound && this.#melonEatSound.buffer) {
-                this.#melonEatSound.play();
+        while (object) {
+            if (object.name === "MELON") {
+                console.log("melontime");
+                if (this.#melonEatSound && this.#melonEatSound.buffer) {
+                    this.#melonEatSound.play();
+                }
+                disposeMelon(this.#scene);
+                break;
+                }
+            object = object.parent;
             }
-            disposeMelon(this.#scene);
-            break;
-            }
-        object = object.parent;
         }
     }
-}
 }
 new Global()
