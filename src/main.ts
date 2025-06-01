@@ -93,7 +93,7 @@ class Global {
         // this.#camera.position.set(10, 10, 10)
         // this.#camera.lookAt(new THREE.Vector3(0, 0, 0))
         this.#camera.add(this.#listener);
-        this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
+        //this.#controls = new OrbitControls(this.#camera, this.#renderer.domElement)
         this.#renderer.setAnimationLoop(this.Tick.bind(this));
         this.#settings = new Settings();
         this.#helper = new Helper();
@@ -127,7 +127,7 @@ class Global {
     Tick() {
         this.sky?.tick(this.#camera, this.#settings, this.#renderer, this.#activePlanet);
         this.#sun?.Tick();
-        this.#controls.update()
+        //this.#controls.update()
         this.#renderer.render(this.#scene, this.#camera);
         updateTardis();
         // Update camera pos…  this had sure better be temporary
