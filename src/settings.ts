@@ -1,7 +1,21 @@
 import * as THREE from "three";
 import { Pane, FolderApi, BladeApi } from "tweakpane";
 import { Planet } from "./planet";
+import { Sun } from "./sun";
 import { seededRandom } from "three/src/math/MathUtils.js";
+
+function getRandomArbitrary(min : number, max : number) {
+  return Math.random() * (max - min) + min;
+}
+
+function randomPolarity() {
+    let num = Math.random()
+    if (num <= 0.5) {
+        return -1
+    } else {
+        return 1
+    }
+}
 
 export class Settings {
     Radius: number = 5
@@ -21,14 +35,32 @@ export class Settings {
     CameraPos: THREE.Vector3 = new THREE.Vector3()
     LightPos: THREE.Vector3 = new THREE.Vector3(15.0, 0.0, 0.0)
     LightColor: THREE.Color = new THREE.Color()
+    LightSound: THREE.PositionalAudio | null = null;
     PlanetEmissivity: THREE.Color = new THREE.Color(0x000000)
     PlanetRoughness: number = 0.65
     PlanetReflectance: THREE.Color = new THREE.Color()
+    PlanetSound: THREE.PositionalAudio | null = null;
+    TardisPosition: THREE.Vector3 = new THREE.Vector3(7, 0, 0);
+    TardisSound: THREE.PositionalAudio | null = null;
+    MelonPosition: THREE.Vector3 = new THREE.Vector3(10, 0, 3);
+    SunColor: THREE.Color = new THREE.Color(Math.random(), Math.random(), Math.random())
+    SunRadius: number = 500
+    SunPosition: THREE.Vector3= new THREE.Vector3(30000.0, 0, 0)
+    SunZoom: number = 2
+    SunSpeed: number = 0.05
+    ToneMapFactor: number = 1
+    ToneMapMin: number = 0.05
+    ToneMapMax: number = 0.8
+    RayleighFactor: number = 1
+    RayleighMin: number = 0
+    RayleighMax: number = 0.8
+    SunFolder: FolderApi | null = null
+    SoundOn: boolean = false
 
     WidthSegments = 256
     HeightSegments = 256
 
-    Pane: Pane = new Pane({ title: "Planet Configuration" })
+    Pane: Pane = new Pane({ title: "Planet Explorer Configuration" })
     PlanetBindings: BladeApi[] = []
 
     SetupPlanetListeners(planet: Planet): void {
@@ -58,7 +90,44 @@ export class Settings {
         rendering.addBinding(this, "PlanetEmissivity", { color: { type: "float" }, label: "Planet Emissivity" })
         rendering.addBinding(this, "PlanetRoughness", { min: 0.0, max: 1.0, step: 0.01, label: "Planet Roughness" })
         rendering.addBinding(this, "PlanetReflectance", { color: { type: "float" }, label: "Planet Reflectance" })
-        this.PlanetBindings = [radius, planetCols, planetNoise, rendering]
+        rendering.addBinding(this, "TardisPosition", { label: "TARDIS Position" });
+        rendering.addBinding(this, "MelonPosition", { label: "Melon Position" });
+        let sound: FolderApi = this.Pane.addFolder({ title: "Sound" }).on("change", planet.UpdateUniforms.bind(planet))
+        let soundButton = sound.addButton({title:"Toggle Sound"});
+        this.PlanetBindings = [radius, planetCols, planetNoise, rendering, sound]
+
+        //Set up "Play Sound" button
+        soundButton.on("click", ()=>{
+            if (this.SoundOn) {
+                this.LightSound?.pause();
+                this.PlanetSound?.pause();
+                this.TardisSound?.pause();    
+                this.SoundOn = false;            
+            } else {
+                this.LightSound?.play();
+                this.PlanetSound?.play();
+                this.TardisSound?.play();
+                this.SoundOn = true;            
+            }
+        })
+    }
+
+    SetupSunListeners(sun: Sun) {
+        if (this.SunFolder != null) {
+            this.SunFolder.dispose();
+        }
+        this.SunFolder = this.Pane.addFolder({title: "Sun"})
+        this.SunFolder.addBinding(this, 'SunColor', {color: { type: "float" }, label: "Sun Colour"}).on("change", sun.UpdateMesh.bind(sun));
+        this.SunFolder.addBinding(this, 'SunZoom', {min: 0.0,  step: 0.1, label: "Sun Shader Zoom"}).on("change", sun.UpdateMesh.bind(sun));
+        this.SunFolder.addBinding(this, 'SunSpeed', {min: 0.0,  step: 0.01, label: "Sun Shader Speed"}).on("change", sun.UpdateMesh.bind(sun));
+        this.SunFolder.addBinding(this, 'SunRadius', {min: 0.0,  step: 0.5, label: "Sun Radius"}).on("change", sun.UpdateMesh.bind(sun));
+        this.SunFolder.addBinding(this, 'SunPosition', {label: "Sun Position"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'ToneMapFactor', {min: 0.0, step: 0.1, label: "ToneMap Factor"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'ToneMapMin', {min: 0.0, max: 1, label: "ToneMap Minimum"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'ToneMapMax', {min: 0.0, max: 1, label: "ToneMap Maximum"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'RayleighFactor', {min: 0.0, step: 0.1, label: "Rayleigh Factor"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'RayleighMin', {min: 0.0, max: 1, label: "Rayleigh Minimum"}).on("change", sun.UpdatePosition.bind(sun));
+        this.SunFolder.addBinding(this, 'RayleighMax', {min: 0.0, max: 1, label: "Rayleigh Maximum"}).on("change", sun.UpdatePosition.bind(sun));
     }
 
     Randomise(seed: number) {
@@ -80,6 +149,7 @@ export class Settings {
         seed += 1
         this.BiomeNoiseSeed = this.HeightNoiseSeed = seededRandom(seed) * Number.MAX_SAFE_INTEGER
         seed += 1
+        this.SunColor = new THREE.Color(Math.random(), Math.random(), Math.random())
         // TODO: BiomeNoiseScale: number = 0.6
     }
 

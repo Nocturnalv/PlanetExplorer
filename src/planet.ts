@@ -12,6 +12,7 @@ export class Planet {
     #scene: THREE.Scene
     #noises: SimplexNoise[] = []
     #noiseOffsets: THREE.Vector3[] = []
+    #clock = new THREE.Clock();
 
     get Settings() { return this.#settings }
     get Mesh() { return this.#sphere }
@@ -83,8 +84,8 @@ export class Planet {
                 u_useColorBanding: { value: this.Settings.UseColorBanding },
                 u_numberColorBands: { value: this.Settings.NumberColorBands },
                 u_cameraPos: { value: this.Settings.CameraPos },
-                u_lightPos: { value: this.Settings.LightPos },
-                u_lightColor: { value: this.Settings.LightColor },
+                u_lightPos: { value: this.Settings.SunPosition },
+                u_lightColor: { value: this.Settings.SunColor },
                 u_emissivity: { value: this.Settings.PlanetEmissivity },
                 u_roughness: { value: this.Settings.PlanetRoughness },
                 u_baseReflectance: { value: this.Settings.PlanetReflectance },
@@ -94,15 +95,36 @@ export class Planet {
         geometry.computeVertexNormals()
         geometry.computeTangents()
         this.#sphere = new THREE.Mesh(geometry, material)
+        this.#sphere.receiveShadow = true;
         this.#scene.add(this.#sphere)
         this.#scene.add(new THREE.AxesHelper())
         this.RegenerateMesh()
     }
 
+    //Generates Audio, can be changed
+
+    GenerateAudio(listener : THREE.AudioListener): void {
+        const audioLoader = new THREE.AudioLoader()
+        this.#settings.PlanetSound = new THREE.PositionalAudio(listener)
+        audioLoader.load( 'sound/ambientPlanet.ogg', (buffer) => {
+            this.#settings.PlanetSound?.setBuffer( buffer );
+            this.#settings.PlanetSound?.setLoop( true );
+            this.#settings.PlanetSound?.setVolume( 1 );
+            this.#settings.PlanetSound?.setRolloffFactor(3);
+            this.#settings.PlanetSound?.setRefDistance(this.Settings.Radius);
+        });
+
+        this.#sphere?.add(this.#settings.PlanetSound);
+    }
+
+    //Updates the sound refDistance with the planet Radius
+
+
     UpdateUniforms(): void {
         if (this.#sphere === null) return;
         let shader: THREE.ShaderMaterial = this.#sphere.material as THREE.ShaderMaterial;
         shader.uniforms.u_radius.value = this.Settings.Radius;
+        this.#settings.PlanetSound?.setRefDistance(this.Settings.Radius);
         shader.uniforms.u_flatAColor.value = this.Settings.FlatAColor;
         shader.uniforms.u_flatBColor.value = this.Settings.FlatBColor;
         shader.uniforms.u_steepAColor.value = this.Settings.SteepAColor;
@@ -114,7 +136,7 @@ export class Planet {
         shader.uniforms.u_useColorBanding.value = this.Settings.UseColorBanding;
         shader.uniforms.u_numberColorBands.value = this.Settings.NumberColorBands;
         shader.uniforms.u_cameraPos.value = this.Settings.CameraPos
-        shader.uniforms.u_lightPos.value = this.Settings.LightPos
+        shader.uniforms.u_lightPos.value = this.Settings.SunPosition
         shader.uniforms.u_lightColor.value = this.Settings.LightColor
         shader.uniforms.u_emissivity.value = this.Settings.PlanetEmissivity
         shader.uniforms.u_roughness.value = this.Settings.PlanetRoughness
@@ -122,12 +144,13 @@ export class Planet {
         this.RegenerateMesh()
     }
 
-    constructor(settings: Settings, scene: THREE.Scene) {
+    constructor(settings: Settings, scene: THREE.Scene, listener: THREE.AudioListener) {
         this.#settings = settings
         this.#scene = scene
         this.Settings.SetupPlanetListeners(this)
         this.GenerateOctaves()
         this.GenerateMesh()
         this.UpdateMesh()
+        this.GenerateAudio(listener);
     }
 }
