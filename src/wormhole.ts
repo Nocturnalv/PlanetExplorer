@@ -15,19 +15,22 @@ export function loadWormhole(): THREE.Mesh {
             u_time: { value: 0 },
         },
         vertexShader: `
-            varying vec2 wrap;
+            varying vec3 vPosition;
+            varying vec2 vUv;
+
             void main() {
-                wrap = uv;
+                vPosition = position;
+                vUv = uv;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         `,
         fragmentShader: `
-            varying vec2 wrap;
+            varying vec2 vUv;
             uniform float u_time;
 
             vec3 hsv2rgb(vec3 c) {
                 vec4 K = vec4(1., 2./3., 1./3., 3.);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 5. - K.www);
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
             }
 
@@ -40,7 +43,7 @@ export function loadWormhole(): THREE.Mesh {
 
                 vec3 colorStart = hsv2rgb(vec3(hueStart, saturation, value));
                 vec3 colorEnd = hsv2rgb(vec3(hueEnd, saturation, value));
-                vec3 gradientColor = mix(colorStart, colorEnd, wrap.y);
+                vec3 gradientColor = mix(colorStart, colorEnd, vUv.y);
 
                 gl_FragColor = vec4(gradientColor, 1.0);
             }
@@ -63,7 +66,8 @@ export function updateWormhole(wormhole: THREE.Mesh, time: number, generateNewCo
     const scale = Math.min(generateNewCount * growthFactor, maxScale);
     wormhole.scale.set(scale, scale, scale);
 }
-
+//if you're wondering three.js normal Lightning.js no longer an add on
+//i couldn't get three-stdlib to work either 
 let lightningMaterial: THREE.ShaderMaterial;
 
 export function loadLightning(
@@ -109,14 +113,32 @@ export function loadLightning(
         `,
         fragmentShader: `
             uniform float u_time;
+            varying vec3 vPosition;
+
+            // Simple Lygia-style fractal noise
+            float hash(float n) {
+                return fract(sin(n) * 43758.5453);
+            }
+
+            float noise(vec3 x) {
+                vec3 p = floor(x);
+                vec3 f = fract(x);
+                f = f * f * (3.0 - 2.0 * f);
+
+                float n = p.x + p.y * 57.0 + 113.0 * p.z;
+                return mix(mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),
+                            mix(hash(n + 57.0), hash(n + 58.0), f.x), f.y),
+                        mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+                            mix(hash(n + 170.0), hash(n + 171.0), f.x), f.y), f.z);
+            }
 
             void main() {
-                float pulse = abs(sin(u_time * 20.0)); // fast flicker
-                gl_FragColor = vec4(0.0, 1.0, 1.0, pulse); // cyan lightning with alpha flicker
+                float t = u_time * 4.0;
+                float strength = 1.0 - abs(sin(t));
+                float alpha = smoothstep(0.3, 1.0, strength * noise(vec3(gl_FragCoord.xy * 0.05, t)));
+                gl_FragColor = vec4(0.2, 0.8, 1.0, alpha); // electric cyan with pulsing noise
             }
-        `,
-        transparent: true,
-        depthWrite: false
+        `
     });
 
     return new THREE.LineSegments(geometry, lightningMaterial);
