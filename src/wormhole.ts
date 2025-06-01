@@ -25,28 +25,30 @@ export function loadWormhole(): THREE.Mesh {
             }
         `,
         fragmentShader: `
-            varying vec2 vUv;
-            uniform float u_time;
+            precision mediump float;
 
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1., 2./3., 1./3., 3.);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 5. - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
-            }
+        varying vec2 vUv;
+        uniform float u_time;
 
-            void main() {
-                float hueStart = mod(u_time * 0.1, 1.0);           
-                float hueEnd = mod(hueStart + 0.5, 1.0);         
-                
-                float saturation = 0.7;
-                float value = 1.0;
+        void main() {
+            vec2 centerUv = vUv - 0.5;
+            float angle = atan(centerUv.y, centerUv.x);
+            float radius = length(centerUv);
 
-                vec3 colorStart = hsv2rgb(vec3(hueStart, saturation, value));
-                vec3 colorEnd = hsv2rgb(vec3(hueEnd, saturation, value));
-                vec3 gradientColor = mix(colorStart, colorEnd, vUv.y);
+            angle += sin(u_time + radius * 10.0) * 0.5;
+            vec2 swirlUv = vec2(cos(angle), sin(angle)) * radius + 0.5;
 
-                gl_FragColor = vec4(gradientColor, 1.0);
-            }
+            vec3 purple = vec3(0.5, 0.0, 0.7);
+            vec3 blue = vec3(0.0, 0.3, 1.0);
+
+            float pulse = 0.5 + 0.5 * sin(u_time * 2.0);
+            vec3 colorA = mix(purple, blue, pulse);
+            vec3 colorB = mix(blue, purple, pulse);
+
+            vec3 gradientColor = mix(colorA, colorB, swirlUv.y);
+
+            gl_FragColor = vec4(gradientColor, 1.0);
+        }
         `
     });
 
@@ -66,15 +68,15 @@ export function updateWormhole(wormhole: THREE.Mesh, time: number, generateNewCo
     const scale = Math.min(generateNewCount * growthFactor, maxScale);
     wormhole.scale.set(scale, scale, scale);
 }
-//if you're wondering three.js normal Lightning.js no longer an add on
-//i couldn't get three-stdlib to work either 
+//if you're wondering three.js normal Lightning.js is no longer an add on
+//i couldn't get three-stdlib to work either (you can delete this comment)
 let lightningMaterial: THREE.ShaderMaterial;
 
 export function loadLightning(
     start: THREE.Vector3 = new THREE.Vector3(0, 0, -80),
     depth = 5,
-    branchCount = 3,
-    branchAngle = Math.PI / 4,
+    forkCount = 3,
+    forkAngle = Math.PI / 4,
     decay = 0.7
 ): THREE.LineSegments {
     const positions: number[] = [];
@@ -82,17 +84,17 @@ export function loadLightning(
     function fork(start: THREE.Vector3, dir: THREE.Vector3, length: number, currentDepth: number) {
         if (currentDepth > depth) return;
 
-        const lengthJitter = length * (0.8 + Math.random() * 0.4);
-        const end = start.clone().add(dir.clone().multiplyScalar(lengthJitter));
+        const zigzag = length * (0.8 + Math.random() * 0.4);
+        const end = start.clone().add(dir.clone().multiplyScalar(zigzag));
         positions.push(start.x, start.y, start.z, end.x, end.y, end.z);
 
-        const localBranchCount = Math.floor(Math.random() * (branchCount + 1));
+        const localForkCount = Math.floor(Math.random() * (forkCount + 1));
 
-        for (let i = 0; i < localBranchCount; i++) {
+        for (let i = 0; i < localForkCount; i++) {
             const randomAxis = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
-            const randomAngle = (Math.random() - 0.5) * 2 * branchAngle;
-            const newDir = dir.clone().applyAxisAngle(randomAxis, randomAngle).normalize();
-            fork(end, newDir, lengthJitter * decay, currentDepth + 1);
+            const randomAngle = (Math.random() - 0.5) * 2 * forkAngle;
+            const variation = dir.clone().applyAxisAngle(randomAxis, randomAngle).normalize();
+            fork(end, variation, zigzag * decay, currentDepth + 1);
         }
     }
 
@@ -115,9 +117,8 @@ export function loadLightning(
             uniform float u_time;
             varying vec3 vPosition;
 
-            // Simple Lygia-style fractal noise
             float hash(float n) {
-                return fract(sin(n) * 43758.5453);
+                return fract(sin(n) * 43758.5453123);
             }
 
             float noise(vec3 x) {
@@ -134,9 +135,9 @@ export function loadLightning(
 
             void main() {
                 float t = u_time * 4.0;
-                float strength = 1.0 - abs(sin(t));
-                float alpha = smoothstep(0.3, 1.0, strength * noise(vec3(gl_FragCoord.xy * 0.05, t)));
-                gl_FragColor = vec4(0.2, 0.8, 1.0, alpha); // electric cyan with pulsing noise
+                float pulse = 1.0 - abs(sin(t));
+                float alpha = smoothstep(0.3, 1.0, pulse * noise(vec3(gl_FragCoord.xy * 0.05, t)));
+                gl_FragColor = vec4(0.2, 0.8, 1.0, alpha);
             }
         `
     });

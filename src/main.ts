@@ -116,7 +116,7 @@ class Global {
 
         const eatSoundLoader = new THREE.AudioLoader();
         this.#melonEatSound = new THREE.Audio(this.#listener);
-        eatSoundLoader.load('sound/eatingEffect.ogg', (buffer) => {
+        eatSoundLoader.load('sound/eatingMelon.ogg', (buffer) => {
             this.#melonEatSound!.setBuffer(buffer);
             this.#melonEatSound!.setVolume(0.35); // adjust as needed
         });

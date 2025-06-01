@@ -75,6 +75,7 @@ export function updateTardis(): void {
 
 }
 
+//Work in progress - not gonna get done in time
 export function disposeTardis(scene: THREE.Scene): void {
     if (tardisLight != null) {
         scene.remove(tardisLight)
